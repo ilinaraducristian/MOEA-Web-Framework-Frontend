@@ -1,5 +1,6 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
+import { Subscription } from "rxjs";
 import { Problem } from "src/app/entities/problem";
 import { SessionService } from "src/app/services/session.service";
 
@@ -8,14 +9,16 @@ import { SessionService } from "src/app/services/session.service";
   templateUrl: "./queue.component.html",
   styleUrls: ["./queue.component.sass"]
 })
-export class QueueComponent implements OnInit {
+export class QueueComponent implements OnInit, OnDestroy {
   public guestProblems: Problem[];
+  private subscriptions: Subscription[];
 
   constructor(
     private readonly sessionService: SessionService,
     private readonly router: Router
   ) {
     this.guestProblems = [];
+    this.subscriptions = [];
   }
 
   ngOnInit() {
@@ -33,5 +36,14 @@ export class QueueComponent implements OnInit {
     localStorage.setItem("problemId", `${problem.id}`);
     this.router.navigateByUrl("results");
     return false;
+  }
+
+  removeProblem(problem: Problem) {
+    this.sessionService.removeProblem(problem).subscribe();
+    return false;
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(subscription => subscription.unsubscribe());
   }
 }

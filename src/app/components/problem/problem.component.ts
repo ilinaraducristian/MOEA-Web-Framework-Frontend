@@ -1,6 +1,7 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
+import { Subscription } from "rxjs";
 import { SessionService } from "src/app/services/session.service";
 import { compareTwoStrings } from "string-similarity";
 
@@ -9,7 +10,7 @@ import { compareTwoStrings } from "string-similarity";
   templateUrl: "./problem.component.html",
   styleUrls: ["./problem.component.sass"]
 })
-export class ProblemComponent implements OnInit {
+export class ProblemComponent implements OnInit, OnDestroy {
   private problems: string[];
   public displayedProblems: string[];
   public selectedProblem: string;
@@ -19,13 +20,13 @@ export class ProblemComponent implements OnInit {
   public selectedAlgorithm: string;
 
   public formGroup: FormGroup;
-  private results = [];
-  private tempChartIndex = false;
+  private subscriptions: Subscription[];
 
   constructor(
     private readonly sessionService: SessionService,
     private readonly router: Router
   ) {
+    this.subscriptions = [];
     this.formGroup = new FormGroup({
       userDefinedName: new FormControl(""),
       numberOfEvaluations: new FormControl(10000),
@@ -202,5 +203,9 @@ export class ProblemComponent implements OnInit {
       .subscribe(() => {
         this.router.navigateByUrl("queue");
       });
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(subscription => subscription.unsubscribe());
   }
 }

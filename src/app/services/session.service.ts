@@ -13,7 +13,6 @@ import { Problem } from "../entities/problem";
 export class SessionService {
   private loginHeaders: HttpHeaders;
   private jsonHeaders: HttpHeaders;
-  private _isLoaded: BehaviorSubject<boolean>;
   private _guestProblemsArray: Problem[];
   private _guestProblems = new BehaviorSubject([]);
 
@@ -28,7 +27,6 @@ export class SessionService {
     this.jsonHeaders = new HttpHeaders({
       "Content-Type": "application/json"
     });
-    this._isLoaded = new BehaviorSubject(false);
     this._guestProblemsArray = [];
     this.indexedDBService
       .getAll("guestProblems")
@@ -37,10 +35,6 @@ export class SessionService {
         this._guestProblems.next(this._guestProblemsArray);
       })
       .catch(error => console.log(error));
-  }
-
-  get isLoaded() {
-    return this._isLoaded;
   }
 
   get guestProblems() {
@@ -104,6 +98,21 @@ export class SessionService {
       this.indexedDBService
         .update("guestProblems", problem)
         .then(() => Promise.resolve())
+    );
+  }
+
+  removeProblem(problem: Problem) {
+    let problemIndex = this._guestProblemsArray.findIndex(
+      value => value == problem
+    );
+    return from(
+      this.indexedDBService
+        .deleteRecord("guestProblems", problem.id)
+        .then(() => {
+          this._guestProblemsArray.splice(problemIndex, 1);
+          this.guestProblems.next(this._guestProblemsArray);
+          return Promise.resolve();
+        })
     );
   }
 }

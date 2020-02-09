@@ -1,5 +1,12 @@
-import { Component, ElementRef, OnInit, ViewChild } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild
+} from "@angular/core";
 import { Chart } from "chart.js";
+import { Subscription } from "rxjs";
 import { Problem } from "src/app/entities/problem";
 import { SessionService } from "src/app/services/session.service";
 
@@ -8,13 +15,14 @@ import { SessionService } from "src/app/services/session.service";
   templateUrl: "./results.component.html",
   styleUrls: ["./results.component.sass"]
 })
-export class ResultsComponent implements OnInit {
+export class ResultsComponent implements OnInit, OnDestroy {
   private chart: Chart;
   private chartDatasets: any[];
   private xAxisLimit = 500;
 
   public qualityIndicators: any[];
   public problem: Problem;
+  private subscriptions: Subscription[];
 
   @ViewChild("graph", { static: false })
   set context(context: ElementRef) {
@@ -86,37 +94,41 @@ export class ResultsComponent implements OnInit {
       }
     ];
     this.chartDatasets = [];
+    this.subscriptions = [];
   }
 
   ngOnInit() {
-    this.sessionService.guestProblems.subscribe(guestProblems => {
-      let savedId = localStorage.getItem("problemId");
-      this.problem = guestProblems.find(problem => problem.id == savedId);
-      if (!this.problem) return;
-      this.xAxisLimit = this.problem.numberOfEvaluations + 1000;
-      this.chartDatasets = [];
-      this.qualityIndicators.forEach(qualityIndicator => {
-        this.problem.results.forEach(result => {
-          this.chartDatasets.push({
-            label: qualityIndicator.name,
-            data: result[qualityIndicator.id].map((result, index) => ({
-              x: (index + 1) * 100,
-              y: result
-            })),
-            fill: false,
-            borderColor: "rgba(255, 0, 0, .3)",
-            pointRadius: 0,
-            borderWidth: 1,
-            hidden: true,
-            id: qualityIndicator.id
+    let savedId = localStorage.getItem("problemId");
+
+    this.subscriptions.push(
+      this.sessionService.guestProblems.subscribe(guestProblems => {
+        this.problem = guestProblems.find(problem => problem.id == savedId);
+        if (!this.problem) return;
+        this.xAxisLimit = this.problem.numberOfEvaluations + 1000;
+        this.chartDatasets = [];
+        this.qualityIndicators.forEach(qualityIndicator => {
+          this.problem.results.forEach(result => {
+            this.chartDatasets.push({
+              label: qualityIndicator.name,
+              data: result[qualityIndicator.id].map((result, index) => ({
+                x: (index + 1) * 100,
+                y: result
+              })),
+              fill: false,
+              borderColor: "rgba(255, 0, 0, .3)",
+              pointRadius: 0,
+              borderWidth: 1,
+              hidden: !qualityIndicator.isActive,
+              id: qualityIndicator.id
+            });
           });
         });
-      });
-      if (this.chart) {
-        this.chart.update({ duration: 0, lazy: false });
-        console.log("update?");
-      }
-    });
+        if (this.chart) {
+          this.chart.data.datasets = this.chartDatasets;
+          this.chart.update();
+        }
+      })
+    );
   }
 
   selectQualityIndicator(qualityIndicator) {
@@ -124,8 +136,9 @@ export class ResultsComponent implements OnInit {
     qualityIndicator.isActive = !qualityIndicator.isActive;
     this.chartDatasets
       .filter(dataset => dataset.id == qualityIndicator.id)
-      .forEach(dataset => {
+      .map(dataset => {
         dataset.hidden = !qualityIndicator.isActive;
+        return dataset;
       });
     this.chart.update();
     return false;
@@ -149,11 +162,6 @@ export class ResultsComponent implements OnInit {
           animationDuration: 0
         },
         responsiveAnimationDuration: 0,
-        elements: {
-          line: {
-            tension: 1
-          }
-        },
         legend: {
           position: "bottom",
           labels: {
@@ -192,5 +200,9 @@ export class ResultsComponent implements OnInit {
         }
       }
     });
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(subscription => subscription.unsubscribe());
   }
 }
