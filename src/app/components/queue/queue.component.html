@@ -1,0 +1,73 @@
+<h2>
+  Queue
+</h2>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Name</th>
+      <th scope="col">Algorithm</th>
+      <th scope="col">Number of evaluations</th>
+      <th scope="col">Number of seeds</th>
+      <th scope="col">Status</th>
+      <th scope="col"></th>
+      <th scope="col"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let guestProblem of guestProblems">
+      <th scope="row">{{ guestProblem.userDefinedName }}</th>
+      <td>{{ guestProblem.name }}</td>
+      <td>
+        {{ guestProblem.algorithm }}
+      </td>
+      <td>
+        {{ guestProblem.numberOfEvaluations }}
+      </td>
+      <td>
+        {{ guestProblem.numberOfSeeds }}
+      </td>
+      <td>
+        {{ guestProblem.status }}
+      </td>
+      <!-- <ngb-progressbar
+        *ngIf="problem.status != 'waiting' && problem.status != 'done'"
+        type="info"
+        [value]="problem.status"
+        [striped]="true"
+        [animated]="true"
+      > -->
+      <!-- <i>{{ problem.status }}% </i>
+      </ngb-progressbar> -->
+      <td>
+        <a (click)="solveProblem(guestProblem)" href="#">
+          <img
+            src="assets/run.png"
+            alt="Run"
+            title="Run"
+            width="20px"
+            style="margin-right: .5rem;"
+          />
+        </a>
+        <a (click)="deleteProblem(guestProblem)" href="#">
+          <img
+            src="assets/delete.png"
+            alt="Delete"
+            title="Delete"
+            width="20px"
+          />
+        </a>
+      </td>
+      <td>
+        <button
+          (click)="showResults(guestProblem)"
+          type="button"
+          class="btn btn-primary"
+        >
+          Show results
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</table>

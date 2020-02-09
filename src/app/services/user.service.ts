@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { environment } from "src/environments/environment";
-import { User } from "../dto/user";
+import { User } from "../entities/user";
 
 @Injectable({
   providedIn: "root"
@@ -11,6 +11,7 @@ export class UserService {
   private jsonHeaders: HttpHeaders;
 
   constructor(private http: HttpClient) {
+    console.log("UserService instance");
     this.loginHeaders = new HttpHeaders({
       Authorization: "Bearer "
     });

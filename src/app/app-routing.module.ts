@@ -1,22 +1,27 @@
-// Modules
 import { NgModule } from "@angular/core";
-import { RouterModule, Routes } from "@angular/router";
+import { Route, RouterModule } from "@angular/router";
+import { HomeComponent } from "./components/home/home.component";
 import { LoginComponent } from "./components/login/login.component";
+import { ProblemComponent } from "./components/problem/problem.component";
+import { QueueComponent } from "./components/queue/queue.component";
+import { ResultsComponent } from "./components/results/results.component";
 import { SignupComponent } from "./components/signup/signup.component";
-// Components
-import { ProblemComponent } from "./problems/problem/problem.component";
-import { ProblemsModule } from "./problems/problems.module";
-import { TestComponent } from "./test/test/test.component";
 
-const routes: Routes = [
-  { path: "problems", component: ProblemComponent },
-  { path: "login", component: LoginComponent },
-  { path: "signup", component: SignupComponent },
-  { path: "test", component: TestComponent }
+export const routes: CustomRoute[] = [
+  { path: "", component: HomeComponent, navbarName: "Home" },
+  { path: "problem", component: ProblemComponent, navbarName: "Problem" },
+  { path: "login", component: LoginComponent, navbarName: "Log In" },
+  { path: "signup", component: SignupComponent, navbarName: "Sign Up" },
+  { path: "queue", component: QueueComponent, navbarName: "Queue" },
+  { path: "results", component: ResultsComponent, navbarName: "Results" }
 ];
 
+interface CustomRoute extends Route {
+  navbarName?: String;
+}
+
 @NgModule({
-  imports: [RouterModule.forRoot(routes), ProblemsModule],
+  imports: [RouterModule.forRoot(routes)],
   exports: [RouterModule]
 })
 export class AppRoutingModule {}

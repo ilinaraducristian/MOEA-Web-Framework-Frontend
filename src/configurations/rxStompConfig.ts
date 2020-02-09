@@ -1,6 +1,6 @@
 import { InjectableRxStompConfig } from "@stomp/ng2-stompjs";
 
-export const myRxStompConfig: InjectableRxStompConfig = {
+export const rxStompConfig: InjectableRxStompConfig = {
   brokerURL: "ws://localhost:15674/ws",
 
   connectHeaders: {
@@ -11,8 +11,4 @@ export const myRxStompConfig: InjectableRxStompConfig = {
   heartbeatIncoming: 0,
   heartbeatOutgoing: 20000,
   reconnectDelay: 3000
-
-  // debug: (msg: string): void => {
-  //   console.log(new Date(), msg);
-  // }
 };

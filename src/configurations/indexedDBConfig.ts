@@ -1,12 +1,11 @@
 import { DBConfig } from "ngx-indexed-db";
-// import { problemsStoreSchema } from "./dtos/problem";
 
 export const indexedDBConfig: DBConfig = {
   name: "moea",
   version: 1,
   objectStoresMeta: [
     {
-      store: "problems",
+      store: "guestProblems",
       storeConfig: { keyPath: "id", autoIncrement: true },
       storeSchema: [
         {
@@ -33,6 +32,21 @@ export const indexedDBConfig: DBConfig = {
           name: "numberOfSeeds",
           keypath: "numberOfSeeds",
           options: { unique: false }
+        },
+        {
+          name: "status",
+          keypath: "status",
+          options: { unique: false }
+        },
+        {
+          name: "rabbitId",
+          keypath: "rabbitId",
+          options: { unique: true }
+        },
+        {
+          name: "solverId",
+          keypath: "solverId",
+          options: { unique: true }
         }
       ]
     }

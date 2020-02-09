@@ -1,0 +1,23 @@
+<div class="container">
+  <div class="alert alert-danger row col-sm-8" *ngIf="!problem">
+    No problem selected
+  </div>
+  <div class="row" *ngIf="problem">
+    <div class="list-group col-sm-4">
+      <button
+        type="button"
+        class="list-group-item list-group-item-action"
+        style="padding: 0.2rem 1.25rem;"
+        *ngFor="let qualityIndicator of qualityIndicators"
+        [ngClass]="{ active: qualityIndicator.isActive }"
+        (click)="selectQualityIndicator(qualityIndicator)"
+      >
+        {{ qualityIndicator.name }}
+      </button>
+    </div>
+
+    <div class="col-sm-6">
+      <canvas #graph width="400" height="400"></canvas>
+    </div>
+  </div>
+</div>

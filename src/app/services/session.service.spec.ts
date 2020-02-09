@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SolverService } from './solver.service';
+import { SessionService } from './session.service';
 
-describe('SolverService', () => {
+describe('SessionService', () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
   it('should be created', () => {
-    const service: SolverService = TestBed.get(SolverService);
+    const service: SessionService = TestBed.get(SessionService);
     expect(service).toBeTruthy();
   });
 });
