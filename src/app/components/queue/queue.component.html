@@ -30,16 +30,17 @@
       </td>
       <td>
         {{ guestProblem.status }}
+        <ngb-progressbar
+          *ngIf="guestProblem.progress"
+          type="info"
+          [value]="guestProblem.progress"
+          [striped]="true"
+          [animated]="true"
+        >
+          <i>{{ guestProblem.progress }}% </i>
+        </ngb-progressbar>
       </td>
-      <!-- <ngb-progressbar
-        *ngIf="problem.status != 'waiting' && problem.status != 'done'"
-        type="info"
-        [value]="problem.status"
-        [striped]="true"
-        [animated]="true"
-      > -->
-      <!-- <i>{{ problem.status }}% </i>
-      </ngb-progressbar> -->
+
       <td>
         <a (click)="solveProblem(guestProblem)" href="#">
           <img

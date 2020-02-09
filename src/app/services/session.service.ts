@@ -101,6 +101,8 @@ export class SessionService {
     );
   }
 
+  cancelProblem() {}
+
   removeProblem(problem: Problem) {
     let problemIndex = this._guestProblemsArray.findIndex(
       value => value == problem

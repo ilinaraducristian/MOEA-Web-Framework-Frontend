@@ -1,6 +1,7 @@
-import { Component } from "@angular/core";
+import { Component, OnDestroy } from "@angular/core";
 import { NavigationEnd, Router } from "@angular/router";
 import { RxStompService } from "@stomp/ng2-stompjs";
+import { Subscription } from "rxjs";
 import { filter, flatMap, map, takeWhile } from "rxjs/operators";
 import { SessionService } from "./services/session.service";
 
@@ -9,8 +10,9 @@ import { SessionService } from "./services/session.service";
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.sass"]
 })
-export class AppComponent {
+export class AppComponent implements OnDestroy {
   public activeRoute: String;
+  private subscriptions: Subscription[];
 
   constructor(
     private readonly router: Router,
@@ -18,54 +20,71 @@ export class AppComponent {
     private readonly rxStompService: RxStompService
   ) {
     this.activeRoute = "";
+    this.subscriptions = [];
   }
 
   ngOnInit() {
-    this.router.events
-      .pipe(
-        filter(event => event instanceof NavigationEnd),
-        map(navigation => {
-          let url: string = navigation["url"];
-          let lastSlash = url.indexOf("/", 1);
-          if (lastSlash == -1) {
-            url = url.slice(1);
-          } else {
-            url = url.slice(1, url.indexOf("/", 1));
-          }
-          return url;
+    this.subscriptions.push(
+      this.router.events
+        .pipe(
+          filter(event => event instanceof NavigationEnd),
+          map(navigation => {
+            let url: string = navigation["url"];
+            let lastSlash = url.indexOf("/", 1);
+            if (lastSlash == -1) {
+              url = url.slice(1);
+            } else {
+              url = url.slice(1, url.indexOf("/", 1));
+            }
+            return url;
+          })
+        )
+        .subscribe(url => {
+          this.activeRoute = url;
         })
-      )
-      .subscribe(url => {
-        this.activeRoute = url;
-      });
-    this.sessionService.guestProblems.subscribe(guestProblems => {
-      guestProblems
-        .filter(guestProblem => guestProblem.solverId)
-        .forEach(guestProblem => {
-          this.rxStompService
-            .watch(`guest.${guestProblem.rabbitId}`)
-            .pipe(
-              takeWhile(
-                message => message["body"] != `{"status":"done"}`,
-                true
-              ),
-              flatMap(message => {
-                let messageBody = JSON.parse(message["body"]);
-                if (messageBody.error) {
-                  guestProblem.status = "waiting";
-                  guestProblem.solverId = undefined;
-                  guestProblem.results = [];
-                } else if (messageBody.status) {
-                  guestProblem.status = "done";
-                  guestProblem.solverId = undefined;
-                } else {
-                  guestProblem.results.push(messageBody);
-                }
-                return this.sessionService.updateProblem(guestProblem);
-              })
-            )
-            .subscribe();
-        });
-    });
+    );
+    this.subscriptions.push(
+      this.sessionService.guestProblems.subscribe(guestProblems => {
+        guestProblems
+          .filter(guestProblem => guestProblem.solverId)
+          .forEach(guestProblem => {
+            this.subscriptions.push(
+              this.rxStompService
+                .watch(`guest.${guestProblem.rabbitId}`)
+                .pipe(
+                  takeWhile(
+                    message => message["body"] != `{"status":"done"}`,
+                    true
+                  ),
+                  flatMap(message => {
+                    let messageBody = JSON.parse(message["body"]);
+                    if (messageBody.error) {
+                      guestProblem.status = "waiting";
+                      guestProblem.solverId = undefined;
+                      guestProblem.progress = undefined;
+                      guestProblem.results = [];
+                    } else if (messageBody.status) {
+                      guestProblem.status = "done";
+                      guestProblem.solverId = undefined;
+                      guestProblem.progress = undefined;
+                    } else {
+                      guestProblem.results.push(messageBody);
+                      guestProblem.progress = Math.floor(
+                        (messageBody.currentSeed / guestProblem.numberOfSeeds) *
+                          100
+                      );
+                    }
+                    return this.sessionService.updateProblem(guestProblem);
+                  })
+                )
+                .subscribe()
+            );
+          });
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(subscription => subscription.unsubscribe());
   }
 }

@@ -7,6 +7,7 @@ export interface Problem {
   numberOfSeeds: number;
   status: string;
   results: any[];
+  progress?: number;
   rabbitId?: string;
   solverId?: string;
 }
