@@ -1,25 +1,48 @@
-import { Component, OnInit } from "@angular/core";
-import { UserService } from "src/app/services/user.service";
+import { Component, OnDestroy, OnInit } from "@angular/core";
+import { FormControl, FormGroup } from "@angular/forms";
+import { Router } from "@angular/router";
+import { Subscription } from "rxjs";
+import { SessionService } from "src/app/services/session.service";
 
 @Component({
   selector: "app-signup",
   templateUrl: "./signup.component.html",
   styleUrls: ["./signup.component.sass"]
 })
-export class SignupComponent implements OnInit {
-  constructor(private readonly userService: UserService) {}
+export class SignupComponent implements OnInit, OnDestroy {
+  public formGroup: FormGroup;
+  private subscription: Subscription;
 
-  ngOnInit() {}
+  constructor(
+    private readonly sessionService: SessionService,
+    private readonly router: Router
+  ) {}
+
+  ngOnInit() {
+    this.formGroup = new FormGroup({
+      username: new FormControl(""),
+      email: new FormControl(""),
+      firstName: new FormControl(""),
+      lastName: new FormControl(""),
+      password: new FormControl(""),
+      confirmPassword: new FormControl("")
+    });
+  }
 
   signup() {
-    this.userService
-      .register({
-        username: "user",
-        password: "password",
-        email: "user@email.com",
-        firstName: "User"
+    this.subscription = this.sessionService
+      .signup({
+        username: this.formGroup.value.username,
+        password: this.formGroup.value.password,
+        email: this.formGroup.value.email,
+        firstName: this.formGroup.value.firstName,
+        lastName: this.formGroup.value.lastName
       })
-      .subscribe(a => console.log(a));
+      .subscribe(() => this.router.navigate(["/login"]));
     return false;
+  }
+
+  ngOnDestroy() {
+    if (this.subscription != null) this.subscription.unsubscribe();
   }
 }

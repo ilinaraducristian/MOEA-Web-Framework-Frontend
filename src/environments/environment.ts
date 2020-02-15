@@ -1,9 +1,16 @@
+const backend = `http://localhost:8080`;
 export const environment = {
   production: false,
-  backend: "http://localhost:8080",
-  guestQueue: "http://localhost:8080/queue",
-  userQueue: "http://localhost:8080/user/queue",
-  user: "http://localhost:8080/user",
-  problem: "http://localhost:8080/problem",
-  algorithm: "http://localhost:8080/algorithm"
+  backend: backend,
+  guestQueue: `${backend}/queue`,
+  userQueue: `${backend}/user/queue`,
+  public: `${backend}/public`,
+  user: `${backend}/user`,
+  problem: `${backend}/problem`,
+  algorithm: `${backend}/algorithm`
 };
+
+export enum UserType {
+  Guest = 0,
+  User = 1
+}

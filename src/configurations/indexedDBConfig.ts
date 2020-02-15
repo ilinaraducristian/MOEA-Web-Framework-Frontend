@@ -5,48 +5,43 @@ export const indexedDBConfig: DBConfig = {
   version: 1,
   objectStoresMeta: [
     {
-      store: "guestProblems",
+      store: "users",
       storeConfig: { keyPath: "id", autoIncrement: true },
       storeSchema: [
         {
-          name: "userDefinedName",
-          keypath: "userDefinedName",
-          options: { unique: false }
-        },
-        {
-          name: "name",
-          keypath: "name",
-          options: { unique: false }
-        },
-        {
-          name: "algorithm",
-          keypath: "algorithm",
-          options: { unique: false }
-        },
-        {
-          name: "numberOfEvaluations",
-          keypath: "numberOfEvaluations",
-          options: { unique: false }
-        },
-        {
-          name: "numberOfSeeds",
-          keypath: "numberOfSeeds",
-          options: { unique: false }
-        },
-        {
-          name: "status",
-          keypath: "status",
-          options: { unique: false }
-        },
-        {
-          name: "rabbitId",
-          keypath: "rabbitId",
+          name: "username",
+          keypath: "username",
           options: { unique: true }
         },
         {
-          name: "solverId",
-          keypath: "solverId",
+          name: "email",
+          keypath: "email",
           options: { unique: true }
+        },
+        {
+          name: "firstName",
+          keypath: "firstName",
+          options: { unique: true }
+        },
+        {
+          name: "lastName",
+          keypath: "lastName",
+          options: { unique: false }
+        },
+        {
+          name: "problems",
+          keypath: "problems",
+          options: { unique: false }
+        },
+        {
+          name: "algorithms",
+          keypath: "algorithms",
+          options: { unique: false }
+        },
+        {
+          name: "queue",
+          keypath: "queue",
+          options: { unique: false }
         }
       ]
     }

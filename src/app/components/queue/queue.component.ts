@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { Subscription } from "rxjs";
-import { Problem } from "src/app/entities/problem";
+import { QueueItem } from "src/app/entities/queue-item";
+import { User } from "src/app/entities/user";
 import { SessionService } from "src/app/services/session.service";
 
 @Component({
@@ -10,36 +11,37 @@ import { SessionService } from "src/app/services/session.service";
   styleUrls: ["./queue.component.sass"]
 })
 export class QueueComponent implements OnInit, OnDestroy {
-  public guestProblems: Problem[];
   private subscriptions: Subscription[];
+  public user: User;
 
   constructor(
     private readonly sessionService: SessionService,
     private readonly router: Router
   ) {
-    this.guestProblems = [];
     this.subscriptions = [];
   }
 
   ngOnInit() {
-    this.sessionService.guestProblems.subscribe(guestProblems => {
-      this.guestProblems = guestProblems;
-    });
+    this.subscriptions.push(
+      this.sessionService.user.subscribe(user => {
+        this.user = user;
+      })
+    );
   }
 
-  solveProblem(problem: Problem) {
-    this.sessionService.solveProblem(problem).subscribe();
+  solveQueueItem(queueItem: QueueItem) {
+    this.sessionService.solveQueueItem(queueItem).subscribe();
     return false;
   }
 
-  showResults(problem: Problem) {
-    localStorage.setItem("problemId", `${problem.id}`);
-    this.router.navigateByUrl("results");
+  showResults(queueItem: QueueItem) {
+    localStorage.setItem("queueItemRabbitId", queueItem.rabbitId);
+    this.router.navigate(["/results"]);
     return false;
   }
 
-  removeProblem(problem: Problem) {
-    this.sessionService.removeProblem(problem).subscribe();
+  removeProblem(queueItem: QueueItem) {
+    this.sessionService.removeQueueItem(queueItem).subscribe();
     return false;
   }
 

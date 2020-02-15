@@ -1,8 +1,9 @@
 import { Component, OnDestroy } from "@angular/core";
 import { NavigationEnd, Router } from "@angular/router";
-import { RxStompService } from "@stomp/ng2-stompjs";
 import { Subscription } from "rxjs";
-import { filter, flatMap, map, takeWhile } from "rxjs/operators";
+import { filter, flatMap, map } from "rxjs/operators";
+import { LoginComponent } from "./components/login/login.component";
+import { User } from "./entities/user";
 import { SessionService } from "./services/session.service";
 
 @Component({
@@ -12,14 +13,16 @@ import { SessionService } from "./services/session.service";
 })
 export class AppComponent implements OnDestroy {
   public activeRoute: String;
+  public loggedIn: boolean;
   private subscriptions: Subscription[];
+  public user: User;
 
   constructor(
     private readonly router: Router,
-    private readonly sessionService: SessionService,
-    private readonly rxStompService: RxStompService
+    private readonly sessionService: SessionService
   ) {
     this.activeRoute = "";
+    this.user = null;
     this.subscriptions = [];
   }
 
@@ -44,44 +47,33 @@ export class AppComponent implements OnDestroy {
         })
     );
     this.subscriptions.push(
-      this.sessionService.guestProblems.subscribe(guestProblems => {
-        guestProblems
-          .filter(guestProblem => guestProblem.solverId)
-          .forEach(guestProblem => {
-            this.subscriptions.push(
-              this.rxStompService
-                .watch(`guest.${guestProblem.rabbitId}`)
-                .pipe(
-                  takeWhile(
-                    message => message["body"] != `{"status":"done"}`,
-                    true
-                  ),
-                  flatMap(message => {
-                    let messageBody = JSON.parse(message["body"]);
-                    if (messageBody.error) {
-                      guestProblem.status = "waiting";
-                      guestProblem.solverId = undefined;
-                      guestProblem.progress = undefined;
-                      guestProblem.results = [];
-                    } else if (messageBody.status) {
-                      guestProblem.status = "done";
-                      guestProblem.solverId = undefined;
-                      guestProblem.progress = undefined;
-                    } else {
-                      guestProblem.results.push(messageBody);
-                      guestProblem.progress = Math.floor(
-                        (messageBody.currentSeed / guestProblem.numberOfSeeds) *
-                          100
-                      );
-                    }
-                    return this.sessionService.updateProblem(guestProblem);
-                  })
-                )
-                .subscribe()
-            );
-          });
-      })
+      this.sessionService.user.subscribe(user => (this.user = user))
     );
+    let jwt = localStorage.getItem("jwt");
+    if (jwt != null) {
+      this.loggedIn = true;
+    }
+  }
+
+  signout() {
+    this.sessionService
+      .signOut()
+      .pipe(
+        flatMap(() => {
+          this.loggedIn = false;
+          return this.router.navigate(["/"]);
+        })
+      )
+      .subscribe();
+    return false;
+  }
+
+  onActivate(componentReference: Component) {
+    if (componentReference instanceof LoginComponent) {
+      componentReference.loggedIn.subscribe(() => {
+        this.loggedIn = true;
+      });
+    }
   }
 
   ngOnDestroy() {

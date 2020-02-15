@@ -1,4 +1,4 @@
-<div class="container">
+<div class="container" *ngIf="user">
   <div class="row">
     <div class="col-sm">
       <form [formGroup]="formGroup">
@@ -8,12 +8,12 @@
             type="text"
             class="input-field"
             id="name"
-            formControlName="userDefinedName"
+            formControlName="name"
           />
         </div>
         <div class="form-group">
           <label for="problem">Problem:</label>
-          <div ngbDropdown class="d-inline-block input-field" id="problem">
+          <div class="d-inline-block input-field" id="problem" ngbDropdown>
             <button
               class="btn btn-outline-primary"
               ngbDropdownToggle
@@ -40,7 +40,7 @@
 
         <div class="form-group">
           <label for="algorithm">Algorithm:</label>
-          <div ngbDropdown class="d-inline-block input-field" id="algorithm">
+          <div class="d-inline-block input-field" id="algorithm" ngbDropdown>
             <button
               class="btn btn-outline-primary"
               ngbDropdownToggle
@@ -88,7 +88,7 @@
           />
         </div>
 
-        <button type="button" class="btn btn-primary" (click)="addToQueue()">
+        <button type="button" class="btn btn-primary" (click)="addQueueItem()">
           Add to queue
         </button>
       </form>

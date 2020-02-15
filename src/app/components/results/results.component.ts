@@ -7,7 +7,8 @@ import {
 } from "@angular/core";
 import { Chart } from "chart.js";
 import { Subscription } from "rxjs";
-import { Problem } from "src/app/entities/problem";
+import { filter } from "rxjs/operators";
+import { QueueItem } from "src/app/entities/queue-item";
 import { SessionService } from "src/app/services/session.service";
 
 @Component({
@@ -21,8 +22,9 @@ export class ResultsComponent implements OnInit, OnDestroy {
   private xAxisLimit = 500;
 
   public qualityIndicators: any[];
-  public problem: Problem;
+  public queueItem: QueueItem;
   private subscriptions: Subscription[];
+  private userSubscription: Subscription;
 
   @ViewChild("graph", { static: false })
   set context(context: ElementRef) {
@@ -98,16 +100,21 @@ export class ResultsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    let savedId = localStorage.getItem("problemId");
-
-    this.subscriptions.push(
-      this.sessionService.guestProblems.subscribe(guestProblems => {
-        this.problem = guestProblems.find(problem => problem.id == savedId);
-        if (!this.problem) return;
-        this.xAxisLimit = this.problem.numberOfEvaluations + 1000;
+    this.userSubscription = this.sessionService.user
+      .pipe(filter(user => user != null))
+      .subscribe(user => {
+        let rabbitId = localStorage.getItem("queueItemRabbitId");
+        if (rabbitId == null) return;
+        let queueItem = user.queue.find(
+          queueItem => queueItem.rabbitId == rabbitId
+        );
+        if (queueItem == undefined) return;
+        console.log("opa");
+        this.queueItem = queueItem;
+        this.xAxisLimit = this.queueItem.numberOfEvaluations + 1000;
         this.chartDatasets = [];
         this.qualityIndicators.forEach(qualityIndicator => {
-          this.problem.results.forEach(result => {
+          this.queueItem.results.forEach(result => {
             this.chartDatasets.push({
               label: qualityIndicator.name,
               data: result[qualityIndicator.id].map((result, index) => ({
@@ -127,8 +134,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
           this.chart.data.datasets = this.chartDatasets;
           this.chart.update();
         }
-      })
-    );
+      });
   }
 
   selectQualityIndicator(qualityIndicator) {
@@ -203,6 +209,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.subscriptions.forEach(subscription => subscription.unsubscribe());
+    this.userSubscription.unsubscribe();
   }
 }

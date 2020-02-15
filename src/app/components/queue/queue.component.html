@@ -15,34 +15,34 @@
       <th scope="col"></th>
     </tr>
   </thead>
-  <tbody>
-    <tr *ngFor="let guestProblem of guestProblems">
-      <th scope="row">{{ guestProblem.userDefinedName }}</th>
-      <td>{{ guestProblem.name }}</td>
+  <tbody *ngIf="user">
+    <tr *ngFor="let queueItem of user.queue">
+      <th scope="row">{{ queueItem.name }}</th>
+      <td>{{ queueItem.name }}</td>
       <td>
-        {{ guestProblem.algorithm }}
+        {{ queueItem.algorithm }}
       </td>
       <td>
-        {{ guestProblem.numberOfEvaluations }}
+        {{ queueItem.numberOfEvaluations }}
       </td>
       <td>
-        {{ guestProblem.numberOfSeeds }}
+        {{ queueItem.numberOfSeeds }}
       </td>
       <td>
-        {{ guestProblem.status }}
+        {{ queueItem.status }}
         <ngb-progressbar
-          *ngIf="guestProblem.progress"
+          *ngIf="queueItem.progress"
           type="info"
-          [value]="guestProblem.progress"
+          [value]="queueItem.progress"
           [striped]="true"
           [animated]="true"
         >
-          <i>{{ guestProblem.progress }}% </i>
+          <i>{{ queueItem.progress }}% </i>
         </ngb-progressbar>
       </td>
 
       <td>
-        <a (click)="solveProblem(guestProblem)" href="#">
+        <a (click)="solveQueueItem(queueItem)" href="#">
           <img
             src="assets/run.png"
             alt="Run"
@@ -51,7 +51,7 @@
             style="margin-right: .5rem;"
           />
         </a>
-        <a (click)="removeProblem(guestProblem)" href="#">
+        <a (click)="removeQueueItem(queueItem)" href="#">
           <img
             src="assets/remove.png"
             alt="Remove"
@@ -62,7 +62,7 @@
       </td>
       <td>
         <button
-          (click)="showResults(guestProblem)"
+          (click)="showResults(queueItem)"
           type="button"
           class="btn btn-primary"
         >
