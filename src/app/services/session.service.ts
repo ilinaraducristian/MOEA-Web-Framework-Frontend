@@ -9,7 +9,7 @@ import {
   Subscription,
   throwError
 } from "rxjs";
-import { flatMap, takeWhile } from "rxjs/operators";
+import { flatMap, takeWhile, map } from "rxjs/operators";
 import { environment, UserType } from "src/environments/environment";
 import { LoginUserDTO } from "../dto/login-user-dto";
 import { QueueItemDTO } from "../dto/queue-item-dto";
@@ -23,7 +23,9 @@ import { User } from "../entities/user";
 })
 export class SessionService implements OnDestroy {
   private jsonHeaders: HttpHeaders;
+  private _guest: User = null;
   private _user: User = null;
+  private _userOrGuest: User = null;
   private _userSubject = new BehaviorSubject<User>(null);
   private rabbitSubscriptions: {
     subscription: Subscription;
@@ -41,40 +43,30 @@ export class SessionService implements OnDestroy {
 
     this.rabbitSubscriptions = [];
 
-    // Create guest user if not found in DB
+    // find guest
     this.indexedDBService
-      .getByID("users", 0)
+      .getByID("users", UserType.Guest)
       .then((guest: User | undefined) => {
         if (guest == undefined) {
-          // create guest
-          return this.getGuestProblemsAndAlgorithms()
-            .toPromise()
-            .then(response => {
-              guest = {
-                id: UserType.Guest,
-                username: "guest",
-                email: "",
-                firstName: "",
-                problems: response["problems"],
-                algorithms: response["algorithms"],
-                queue: []
-              };
-            })
-            .then(() => this.indexedDBService.add("users", guest))
-            .then(() => {
-              this._user = guest;
-              this._userSubject.next(this._user);
-            });
+          // guest not found, create guest
+          return this.createGuest()
         } else {
-          this._user = guest;
-          this._userSubject.next(this._user);
+          // guest found, listen for 
+          guest.queue.forEach(queueItem => {
+            if (queueItem)
+              this.addRabbitSubscription(queueItem)
+          })
+          this._guest = guest;
+          this._userOrGuest = guest;
+          this._userSubject.next(this._userOrGuest);
         }
       })
       .then(() => this.indexedDBService.getByID("users", 1))
       .then((user: User | undefined) => {
         if (user != undefined) {
           this._user = user;
-          this._userSubject.next(this._user);
+          this._userOrGuest = user;
+          this._userSubject.next(this._userOrGuest);
         }
       })
       .then(() => {
@@ -90,7 +82,25 @@ export class SessionService implements OnDestroy {
     return this._userSubject.asObservable();
   }
 
-  private createGuest() {}
+  private createGuest() {
+    this.http.get(`${environment.public}/getProblemsAndAlgorithms`).toPromise().then(response => {
+      let guest = {
+        id: UserType.Guest,
+        username: "guest",
+        email: "",
+        firstName: "",
+        problems: response["problems"],
+        algorithms: response["algorithms"],
+        queue: []
+      };
+
+      return this.indexedDBService.add("users", guest).then(() => {
+        this._guest = guest;
+        this._userOrGuest = guest;
+        this._userSubject.next(this._userOrGuest);
+      })
+    })
+  }
 
   signup(registerUserDTO: RegisterUserDTO) {
     return this.http.post(`${environment.user}/register`, registerUserDTO, {
@@ -117,7 +127,7 @@ export class SessionService implements OnDestroy {
           };
           return from(
             this.indexedDBService.update("users", this._user).then(() => {
-              this._userSubject.next(this._user);
+              this._userSubject.next(this._userOrGuest);
               localStorage.setItem("jwt", response["jwt"]);
             })
           );
@@ -130,13 +140,13 @@ export class SessionService implements OnDestroy {
       this.indexedDBService.delete("users", UserType.User).then(() => {
         localStorage.removeItem("jwt");
         this._user = null;
-        this._userSubject.next(this._user);
+        this._userSubject.next(this._userOrGuest);
       })
     );
   }
 
   getGuestProblemsAndAlgorithms() {
-    return this.http.get(`${environment.public}/getProblemsAndAlgorithms`);
+    return this.http.get(`${environment.public}/getProblemsAndAlgorithms`).toPromise();
   }
 
   addQueueItem(queueItem: QueueItem) {
@@ -251,22 +261,22 @@ export class SessionService implements OnDestroy {
       subscription: this.rxStompService
         .watch(rabbitRoute)
         .pipe(
-          takeWhile(message => message["body"] != `{"status":"done"}`, true),
+          map(message => JSON.parse(message["body"]) as RabbitResponse),
+          takeWhile(message => message.status != "done", true),
           flatMap(message => {
-            let messageBody = JSON.parse(message["body"]) as RabbitResponse;
-            if (messageBody.error) {
+            if (message.error) {
               queueItem.status = "waiting";
               queueItem.solverId = undefined;
               queueItem.progress = undefined;
               queueItem.results = [];
-            } else if (messageBody.status) {
+            } else if (message.status == 'done') {
               queueItem.status = "done";
               queueItem.solverId = undefined;
               queueItem.progress = undefined;
             } else {
-              queueItem.results.push(messageBody);
+              queueItem.results.push(message);
               queueItem.progress = Math.floor(
-                (messageBody.currentSeed / queueItem.numberOfSeeds) * 100
+                (message.currentSeed / queueItem.numberOfSeeds) * 100
               );
             }
             return this.updateUser();
@@ -279,8 +289,8 @@ export class SessionService implements OnDestroy {
 
   private updateUser() {
     return from(
-      this.indexedDBService.update("users", this._user).then(() => {
-        this._userSubject.next(this._user);
+      this.indexedDBService.update("users", this._userOrGuest).then(() => {
+        this._userSubject.next(this._userOrGuest);
       })
     );
   }
