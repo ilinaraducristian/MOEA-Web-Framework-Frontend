@@ -31,8 +31,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.formGroup = new FormGroup({
       username: new FormControl(""),
-      password: new FormControl(""),
-      rememberMe: new FormControl(false)
+      password: new FormControl("")
     });
     this.badCredentials = false;
   }

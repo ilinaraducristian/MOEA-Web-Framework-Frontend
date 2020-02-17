@@ -1,4 +1,4 @@
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { Injectable, OnDestroy } from "@angular/core";
 import { RxStompService } from "@stomp/ng2-stompjs";
 import { NgxIndexedDBService } from "ngx-indexed-db";
@@ -22,7 +22,7 @@ import { User } from "../entities/user";
   providedIn: "root"
 })
 export class SessionService implements OnDestroy {
-  private jsonHeaders: {};
+  private jsonHeaders: HttpHeaders;
   private _user: User = null;
   private _userSubject = new BehaviorSubject<User>(null);
   private rabbitSubscriptions: {
@@ -35,9 +35,9 @@ export class SessionService implements OnDestroy {
     private readonly rxStompService: RxStompService,
     private readonly http: HttpClient
   ) {
-    this.jsonHeaders = {
+    this.jsonHeaders = new HttpHeaders({
       "Content-Type": "application/json"
-    };
+    });
 
     this.rabbitSubscriptions = [];
 
@@ -89,6 +89,8 @@ export class SessionService implements OnDestroy {
   get user() {
     return this._userSubject.asObservable();
   }
+
+  private createGuest() {}
 
   signup(registerUserDTO: RegisterUserDTO) {
     return this.http.post(`${environment.user}/register`, registerUserDTO, {
@@ -156,13 +158,10 @@ export class SessionService implements OnDestroy {
       );
     } else {
       request = this.http.post(
-        "http://localhost:8080/user/queue/addQueueItem",
+        `${environment.userQueue}/addQueueItem`,
         queueItemDTO,
         {
-          headers: {
-            ...this.jsonHeaders,
-            Authorization: `Bearer ${localStorage.getItem("jwt")}`
-          }
+          headers: this.jsonHeaders
         }
       );
     }
@@ -183,12 +182,7 @@ export class SessionService implements OnDestroy {
       );
     } else {
       request = this.http.get(
-        `${environment.userQueue}/solveQueueItem/${queueItem.rabbitId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("jwt")}`
-          }
-        }
+        `${environment.userQueue}/solveQueueItem/${queueItem.rabbitId}`
       );
     }
     return request.pipe(

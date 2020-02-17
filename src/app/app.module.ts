@@ -1,4 +1,4 @@
-import { HttpClientModule } from "@angular/common/http";
+import { HttpClientModule, HTTP_INTERCEPTORS } from "@angular/common/http";
 import { NgModule } from "@angular/core";
 import { ReactiveFormsModule } from "@angular/forms";
 import { BrowserModule } from "@angular/platform-browser";
@@ -15,6 +15,7 @@ import { indexedDBConfig } from "../configurations/indexedDBConfig";
 import { environment } from "../environments/environment";
 import { AppRoutingModule } from "./app-routing.module";
 import { AppComponent } from "./app.component";
+import { AuthInterceptor } from "./auth-interceptor";
 import { HomeComponent } from "./components/home/home.component";
 import { LoginComponent } from "./components/login/login.component";
 import { ProblemComponent } from "./components/problem/problem.component";
@@ -44,6 +45,7 @@ import { SignupComponent } from "./components/signup/signup.component";
     })
   ],
   providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     {
       provide: InjectableRxStompConfig,
       useValue: rxStompConfig
