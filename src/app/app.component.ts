@@ -47,7 +47,9 @@ export class AppComponent implements OnDestroy {
         })
     );
     this.subscriptions.push(
-      this.sessionService.user.subscribe(user => (this.user = user))
+      this.sessionService.user.subscribe(user => {
+        this.user = user;
+      })
     );
     let jwt = localStorage.getItem("jwt");
     if (jwt != null) {

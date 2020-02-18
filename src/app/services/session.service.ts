@@ -6,10 +6,11 @@ import {
   BehaviorSubject,
   from,
   Observable,
+  of,
   Subscription,
   throwError
 } from "rxjs";
-import { flatMap, takeWhile, map } from "rxjs/operators";
+import { flatMap, map, takeWhile, tap } from "rxjs/operators";
 import { environment, UserType } from "src/environments/environment";
 import { LoginUserDTO } from "../dto/login-user-dto";
 import { QueueItemDTO } from "../dto/queue-item-dto";
@@ -49,32 +50,16 @@ export class SessionService implements OnDestroy {
       .then((guest: User | undefined) => {
         if (guest == undefined) {
           // guest not found, create guest
-          return this.createGuest()
+          return this.createGuest();
         } else {
-          // guest found, listen for 
-          guest.queue.forEach(queueItem => {
-            if (queueItem)
-              this.addRabbitSubscription(queueItem)
-          })
-          this._guest = guest;
-          this._userOrGuest = guest;
-          this._userSubject.next(this._userOrGuest);
+          // guest found, update queue, listen for queueitem change
+          return this.updateGuest(guest);
         }
       })
       .then(() => this.indexedDBService.getByID("users", 1))
       .then((user: User | undefined) => {
-        if (user != undefined) {
-          this._user = user;
-          this._userOrGuest = user;
-          this._userSubject.next(this._userOrGuest);
-        }
-      })
-      .then(() => {
-        this._user.queue
-          .filter(queueItem => queueItem.status == "working")
-          .forEach(queueItem => {
-            this.addRabbitSubscription(queueItem);
-          });
+        if (user == undefined) return;
+        return this.updateUser(user);
       });
   }
 
@@ -83,23 +68,80 @@ export class SessionService implements OnDestroy {
   }
 
   private createGuest() {
-    this.http.get(`${environment.public}/getProblemsAndAlgorithms`).toPromise().then(response => {
-      let guest = {
-        id: UserType.Guest,
-        username: "guest",
-        email: "",
-        firstName: "",
-        problems: response["problems"],
-        algorithms: response["algorithms"],
-        queue: []
-      };
+    this.http
+      .get(`${environment.public}/getProblemsAndAlgorithms`)
+      .toPromise()
+      .then(response => {
+        let guest = {
+          id: UserType.Guest,
+          username: "guest",
+          email: "",
+          firstName: "",
+          problems: response["problems"],
+          algorithms: response["algorithms"],
+          queue: []
+        };
 
-      return this.indexedDBService.add("users", guest).then(() => {
-        this._guest = guest;
-        this._userOrGuest = guest;
+        return this.indexedDBService.add("users", guest).then(() => {
+          this._guest = guest;
+          this._userOrGuest = guest;
+          this._userSubject.next(this._userOrGuest);
+        });
+      });
+  }
+
+  private updateGuest(guest: User) {
+    let resolve;
+    if (guest.queue.length == 0) resolve = Promise.resolve();
+    else {
+      resolve = this.http
+        .post<QueueItem[]>(
+          `${environment.guestQueue}`,
+          guest.queue.map(queueItem => queueItem.rabbitId),
+          { headers: this.jsonHeaders }
+        )
+        .toPromise()
+        .then(queue => {
+          guest.queue = queue;
+          guest.queue
+            .filter(queueItem => queueItem.status == "working")
+            .forEach(queueItem => {
+              this.addRabbitSubscription(queueItem);
+            });
+        });
+    }
+    return resolve.then(() => {
+      this._guest = guest;
+      this._userOrGuest = guest;
+      this._userSubject.next(this._userOrGuest);
+    });
+  }
+
+  private updateUser(user: User) {
+    return this.http
+      .get<QueueItem[]>(`${environment.userQueue}`)
+      .toPromise()
+      .then(queue => {
+        if (queue == undefined) return;
+        user.queue = queue;
+        user.queue
+          .filter(queueItem => queueItem.status == "working")
+          .forEach(queueItem => {
+            this.addRabbitSubscription(queueItem);
+          });
+        this._user = user;
+        this._userOrGuest = user;
         this._userSubject.next(this._userOrGuest);
-      })
-    })
+      });
+  }
+
+  removeUser() {
+    return this.indexedDBService.delete("users", UserType.User).then(() => {
+      this._user = null;
+      if (this._userOrGuest.id == UserType.User)
+        this._userOrGuest = this._guest;
+      this._userSubject.next(this._userOrGuest);
+    });
   }
 
   signup(registerUserDTO: RegisterUserDTO) {
@@ -146,7 +188,9 @@ export class SessionService implements OnDestroy {
   }
 
   getGuestProblemsAndAlgorithms() {
-    return this.http.get(`${environment.public}/getProblemsAndAlgorithms`).toPromise();
+    return this.http
+      .get(`${environment.public}/getProblemsAndAlgorithms`)
+      .toPromise();
   }
 
   addQueueItem(queueItem: QueueItem) {
@@ -179,7 +223,7 @@ export class SessionService implements OnDestroy {
       flatMap(response => {
         queueItem.rabbitId = response["rabbitId"];
         this._user.queue.push(queueItem);
-        return this.updateUser();
+        return this.updateUserOrGuest();
       })
     );
   }
@@ -200,12 +244,12 @@ export class SessionService implements OnDestroy {
         queueItem.solverId = response["solverId"];
         queueItem.status = "working";
         this.addRabbitSubscription(queueItem);
-        return this.updateUser();
+        return this.updateUserOrGuest();
       })
     );
   }
 
-  cancelQueueItem(queueItem: QueueItem) {
+  private cancelQueueItem(queueItem: QueueItem) {
     let request: Observable<any>;
     if (queueItem.status != "working")
       return throwError("QueueItem is not working");
@@ -222,12 +266,30 @@ export class SessionService implements OnDestroy {
       flatMap(() => {
         queueItem.solverId = undefined;
         queueItem.status = "waiting";
-        return this.updateUser();
+        return this.updateUserOrGuest();
       })
     );
   }
 
   removeQueueItem(queueItem: QueueItem) {
+    let request: Observable<any> = of();
+    if (queueItem.status == "working") {
+      if (this._user.id == UserType.Guest) {
+        request = this.http.get(
+          `${environment.guestQueue}/cancelProblem/${queueItem.solverId}`
+        );
+      } else {
+        request = this.http.get(
+          `${environment.userQueue}/cancelProblem/${queueItem.solverId}`
+        );
+      }
+      request.pipe(
+        tap(() => {
+          queueItem.solverId = undefined;
+          queueItem.status = "waiting";
+        })
+      );
+    }
     let foundQueueItemIndex = this._user.queue.findIndex(
       item => queueItem === item
     );
@@ -244,7 +306,7 @@ export class SessionService implements OnDestroy {
     }
     if (foundQueueItemIndex != -1) {
       this._user.queue.splice(foundQueueItemIndex, 1);
-      return this.updateUser();
+      return this.updateUserOrGuest();
     } else {
       return throwError("QueueItem not found");
     }
@@ -269,7 +331,7 @@ export class SessionService implements OnDestroy {
               queueItem.solverId = undefined;
               queueItem.progress = undefined;
               queueItem.results = [];
-            } else if (message.status == 'done') {
+            } else if (message.status == "done") {
               queueItem.status = "done";
               queueItem.solverId = undefined;
               queueItem.progress = undefined;
@@ -279,7 +341,7 @@ export class SessionService implements OnDestroy {
                 (message.currentSeed / queueItem.numberOfSeeds) * 100
               );
             }
-            return this.updateUser();
+            return this.updateUserOrGuest();
           })
         )
         .subscribe(),
@@ -287,7 +349,7 @@ export class SessionService implements OnDestroy {
     });
   }
 
-  private updateUser() {
+  private updateUserOrGuest() {
     return from(
       this.indexedDBService.update("users", this._userOrGuest).then(() => {
         this._userSubject.next(this._userOrGuest);
