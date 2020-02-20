@@ -109,7 +109,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
           queueItem => queueItem.rabbitId == rabbitId
         );
         if (queueItem == undefined) return;
-        console.log("opa");
         this.queueItem = queueItem;
         this.xAxisLimit = this.queueItem.numberOfEvaluations + 1000;
         this.chartDatasets = [];

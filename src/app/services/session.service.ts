@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { Injectable, OnDestroy } from "@angular/core";
+import { JwtHelperService } from "@auth0/angular-jwt";
 import { RxStompService } from "@stomp/ng2-stompjs";
 import { NgxIndexedDBService } from "ngx-indexed-db";
 import {
@@ -56,7 +57,7 @@ export class SessionService implements OnDestroy {
           return this.updateGuest(guest);
         }
       })
-      .then(() => this.indexedDBService.getByID("users", 1))
+      .then(() => this.indexedDBService.getByID("users", UserType.User))
       .then((user: User | undefined) => {
         if (user == undefined) return;
         return this.updateUser(user);
@@ -118,6 +119,17 @@ export class SessionService implements OnDestroy {
   }
 
   private updateUser(user: User) {
+    // if token expired return
+    try {
+      const helper = new JwtHelperService();
+      let exp = helper.getTokenExpirationDate(localStorage.getItem("jwt"));
+      if (Date.now() - exp.getTime() >= 0) {
+        localStorage.removeItem("jwt");
+        return Promise.resolve();
+      }
+    } catch (error) {
+      return Promise.resolve();
+    }
     return this.http
       .get<QueueItem[]>(`${environment.userQueue}`)
       .toPromise()
@@ -169,6 +181,7 @@ export class SessionService implements OnDestroy {
           };
           return from(
             this.indexedDBService.update("users", this._user).then(() => {
+              this._userOrGuest = this._user;
               this._userSubject.next(this._userOrGuest);
               localStorage.setItem("jwt", response["jwt"]);
             })
@@ -182,6 +195,7 @@ export class SessionService implements OnDestroy {
       this.indexedDBService.delete("users", UserType.User).then(() => {
         localStorage.removeItem("jwt");
         this._user = null;
+        this._userOrGuest = this._guest;
         this._userSubject.next(this._userOrGuest);
       })
     );
