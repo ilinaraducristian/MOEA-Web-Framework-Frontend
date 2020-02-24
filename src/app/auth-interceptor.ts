@@ -8,7 +8,7 @@ import {
 import { Injectable } from "@angular/core";
 import { from, Observable, of } from "rxjs";
 import { catchError } from "rxjs/operators";
-import { environment } from "src/environments/environment";
+import { environment, UserType } from "src/environments/environment";
 import { SessionService } from "./services/session.service";
 
 @Injectable()
@@ -20,7 +20,7 @@ export class AuthInterceptor implements HttpInterceptor {
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
     let response: Observable<HttpEvent<any>>;
-    if (req.url.startsWith(environment.userQueue)) {
+    if (req.url.startsWith(environment.queues[UserType.User])) {
       response = next.handle(
         req.clone({
           headers: req.headers.set(

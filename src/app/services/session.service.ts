@@ -7,7 +7,6 @@ import {
   BehaviorSubject,
   from,
   Observable,
-  of,
   Subscription,
   throwError
 } from "rxjs";
@@ -97,7 +96,7 @@ export class SessionService implements OnDestroy {
     else {
       resolve = this.http
         .post<QueueItem[]>(
-          `${environment.guestQueue}`,
+          `${environment.queues[UserType.Guest]}`,
           guest.queue.map(queueItem => queueItem.rabbitId),
           { headers: this.jsonHeaders }
         )
@@ -131,7 +130,7 @@ export class SessionService implements OnDestroy {
       return Promise.resolve();
     }
     return this.http
-      .get<QueueItem[]>(`${environment.userQueue}`)
+      .get<QueueItem[]>(`${environment.queues[UserType.User]}`)
       .toPromise()
       .then(queue => {
         if (queue == undefined) return;
@@ -215,94 +214,57 @@ export class SessionService implements OnDestroy {
       numberOfEvaluations: queueItem.numberOfEvaluations,
       numberOfSeeds: queueItem.numberOfSeeds
     };
-    let request: Observable<any>;
-    if (this._user.id == UserType.Guest) {
-      request = this.http.post(
-        `${environment.guestQueue}/addQueueItem`,
-        queueItemDTO,
-        {
-          headers: this.jsonHeaders
-        }
-      );
-    } else {
-      request = this.http.post(
-        `${environment.userQueue}/addQueueItem`,
-        queueItemDTO,
-        {
-          headers: this.jsonHeaders
-        }
-      );
-    }
-    return request.pipe(
-      flatMap(response => {
-        queueItem.rabbitId = response["rabbitId"];
-        this._user.queue.push(queueItem);
-        return this.updateUserOrGuest();
+    return this.http
+      .post(`${environment.queues[this._user.id]}/addQueueItem`, queueItemDTO, {
+        headers: this.jsonHeaders
       })
-    );
+      .pipe(
+        flatMap(response => {
+          queueItem.rabbitId = response["rabbitId"];
+          this._user.queue.push(queueItem);
+          return this.updateUserOrGuest();
+        })
+      );
   }
 
   solveQueueItem(queueItem: QueueItem) {
-    let request: Observable<any>;
-    if (this._user.id == UserType.Guest) {
-      request = this.http.get(
-        `${environment.guestQueue}/solveQueueItem/${queueItem.rabbitId}`
+    return this.http
+      .get(`${this._user.id}/solveQueueItem/${queueItem.rabbitId}`)
+      .pipe(
+        flatMap(response => {
+          queueItem.solverId = response["solverId"];
+          queueItem.status = "working";
+          this.addRabbitSubscription(queueItem);
+          return this.updateUserOrGuest();
+        })
       );
-    } else {
-      request = this.http.get(
-        `${environment.userQueue}/solveQueueItem/${queueItem.rabbitId}`
-      );
-    }
-    return request.pipe(
-      flatMap(response => {
-        queueItem.solverId = response["solverId"];
-        queueItem.status = "working";
-        this.addRabbitSubscription(queueItem);
-        return this.updateUserOrGuest();
-      })
-    );
   }
 
   private cancelQueueItem(queueItem: QueueItem) {
     let request: Observable<any>;
     if (queueItem.status != "working")
       return throwError("QueueItem is not working");
-    if (this._user.id == UserType.Guest) {
-      request = this.http.get(
-        `${environment.guestQueue}/cancelProblem/${queueItem.solverId}`
+    return this.http
+      .get(`${this._user.id}/cancelProblem/${queueItem.solverId}`)
+      .pipe(
+        flatMap(() => {
+          queueItem.solverId = undefined;
+          queueItem.status = "waiting";
+          return this.updateUserOrGuest();
+        })
       );
-    } else {
-      request = this.http.get(
-        `${environment.userQueue}/cancelProblem/${queueItem.solverId}`
-      );
-    }
-    return request.pipe(
-      flatMap(() => {
-        queueItem.solverId = undefined;
-        queueItem.status = "waiting";
-        return this.updateUserOrGuest();
-      })
-    );
   }
 
   removeQueueItem(queueItem: QueueItem) {
-    let request: Observable<any> = of();
     if (queueItem.status == "working") {
-      if (this._user.id == UserType.Guest) {
-        request = this.http.get(
-          `${environment.guestQueue}/cancelProblem/${queueItem.solverId}`
+      this.http
+        .get(`${this._user.id}/cancelProblem/${queueItem.solverId}`)
+        .pipe(
+          tap(() => {
+            queueItem.solverId = undefined;
+            queueItem.status = "waiting";
+          })
         );
-      } else {
-        request = this.http.get(
-          `${environment.userQueue}/cancelProblem/${queueItem.solverId}`
-        );
-      }
-      request.pipe(
-        tap(() => {
-          queueItem.solverId = undefined;
-          queueItem.status = "waiting";
-        })
-      );
     }
     let foundQueueItemIndex = this._user.queue.findIndex(
       item => queueItem === item

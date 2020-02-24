@@ -2,8 +2,10 @@ const backend = `http://localhost:8080`;
 export const environment = {
   production: false,
   backend: backend,
-  guestQueue: `${backend}/queue`,
-  userQueue: `${backend}/user/queue`,
+  queues: [
+    `${backend}/queue`, // Guest queue
+    `${backend}/user/queue` // User queue
+  ],
   public: `${backend}/public`,
   user: `${backend}/user`,
   problem: `${backend}/problem`,
