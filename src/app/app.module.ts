@@ -45,14 +45,11 @@ import { SignupComponent } from "./components/signup/signup.component";
     }),
     JwtModule.forRoot({
       config: {
-        tokenGetter: () => localStorage.getItem("jwt"),
-        whitelistedDomains: ["example.com"],
-        blacklistedRoutes: ["example.com/examplebadroute/"]
+        tokenGetter: () => localStorage.getItem("jwt")
       }
     })
   ],
   providers: [
-    // { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     {
       provide: InjectableRxStompConfig,
       useValue: rxStompConfig
