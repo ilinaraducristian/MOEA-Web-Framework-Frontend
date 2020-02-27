@@ -1,4 +1,4 @@
-<div class="container">
+<!-- <div class="container">
   <div class="alert alert-danger row col-sm-8" *ngIf="!queueItem">
     No queue item selected
   </div>
@@ -17,6 +17,58 @@
     </div>
 
     <div class="col-sm-8">
+      <canvas #graph width="550" height="400"></canvas>
+    </div>
+  </div>
+</div> -->
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-5">
+      <div class="row problems">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Prolem</th>
+              <th scope="col">Algorithm</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              class="list-group-item-action"
+              *ngFor="let queueObject of queue"
+              [ngClass]="{ active: queueObject.isActive }"
+              (click)="selectQueueObject(queueObject)"
+            >
+              <td>
+                {{ queueObject.queueItem.name }}
+              </td>
+              <td>
+                {{ queueObject.queueItem.problem }}
+              </td>
+              <td>
+                {{ queueObject.queueItem.algorithm }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row quality-indicators">
+        <div class="list-group">
+          <button
+            type="button"
+            class="list-group-item list-group-item-action"
+            *ngFor="let qualityIndicator of qualityIndicators"
+            [ngClass]="{ active: qualityIndicator.isActive }"
+            (click)="selectQualityIndicator(qualityIndicator)"
+          >
+            {{ qualityIndicator.name }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
       <canvas #graph width="550" height="400"></canvas>
     </div>
   </div>

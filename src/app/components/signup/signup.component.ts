@@ -1,7 +1,6 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
-import { Subscription } from "rxjs";
 import { SessionService } from "src/app/services/session.service";
 
 @Component({
@@ -11,7 +10,6 @@ import { SessionService } from "src/app/services/session.service";
 })
 export class SignupComponent implements OnInit, OnDestroy {
   public formGroup: FormGroup;
-  private subscription: Subscription;
 
   constructor(
     private readonly sessionService: SessionService,
@@ -30,7 +28,7 @@ export class SignupComponent implements OnInit, OnDestroy {
   }
 
   signup() {
-    this.subscription = this.sessionService
+    this.sessionService
       .signup({
         username: this.formGroup.value.username,
         password: this.formGroup.value.password,
@@ -42,7 +40,5 @@ export class SignupComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  ngOnDestroy() {
-    if (this.subscription != null) this.subscription.unsubscribe();
-  }
+  ngOnDestroy() {}
 }

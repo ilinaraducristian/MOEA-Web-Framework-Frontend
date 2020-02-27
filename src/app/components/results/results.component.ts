@@ -6,9 +6,9 @@ import {
   ViewChild
 } from "@angular/core";
 import { Chart } from "chart.js";
-import { Subscription } from "rxjs";
-import { filter } from "rxjs/operators";
-import { QueueItem } from "src/app/entities/queue-item";
+import { empty, iif, Subscription } from "rxjs";
+import { flatMap } from "rxjs/operators";
+import { User } from "src/app/entities/user";
 import { SessionService } from "src/app/services/session.service";
 
 @Component({
@@ -17,12 +17,14 @@ import { SessionService } from "src/app/services/session.service";
   styleUrls: ["./results.component.sass"]
 })
 export class ResultsComponent implements OnInit, OnDestroy {
+  // Chart config
   private chart: Chart;
   private chartDatasets: any[];
   private xAxisLimit = 500;
 
   public qualityIndicators: any[];
-  public queueItem: QueueItem;
+  // public queueItem: QueueItem;
+  public queue: {}[];
   private subscriptions: Subscription[];
   private userSubscription: Subscription;
 
@@ -97,43 +99,78 @@ export class ResultsComponent implements OnInit, OnDestroy {
     ];
     this.chartDatasets = [];
     this.subscriptions = [];
+    this.queue = [];
+  }
+
+  userIsNullObservable() {
+    this.chartDatasets = [];
+    this.subscriptions = [];
+    this.queue = [
+      {
+        isActive: false,
+        queueItem: {
+          name: "Problem noua",
+          problem: "Belegundu",
+          algorithm: "CMA-ES"
+        }
+      }
+    ];
+
+    return empty();
+  }
+
+  userIsNotNullObservable(user: User) {
+    return empty();
   }
 
   ngOnInit() {
     this.userSubscription = this.sessionService.user
-      .pipe(filter(user => user != null))
-      .subscribe(user => {
-        let rabbitId = localStorage.getItem("queueItemRabbitId");
-        if (rabbitId == null) return;
-        let queueItem = user.queue.find(
-          queueItem => queueItem.rabbitId == rabbitId
-        );
-        if (queueItem == undefined) return;
-        this.queueItem = queueItem;
-        this.xAxisLimit = this.queueItem.numberOfEvaluations + 1000;
-        this.chartDatasets = [];
-        this.qualityIndicators.forEach(qualityIndicator => {
-          this.queueItem.results.forEach(result => {
-            this.chartDatasets.push({
-              label: qualityIndicator.name,
-              data: result[qualityIndicator.id].map((result, index) => ({
-                x: (index + 1) * 100,
-                y: result
-              })),
-              fill: false,
-              borderColor: "rgba(255, 0, 0, .3)",
-              pointRadius: 0,
-              borderWidth: 1,
-              hidden: !qualityIndicator.isActive,
-              id: qualityIndicator.id
-            });
-          });
-        });
-        if (this.chart) {
-          this.chart.data.datasets = this.chartDatasets;
-          this.chart.update();
-        }
-      });
+      .pipe(
+        flatMap(user =>
+          iif(
+            () => user == null,
+            this.userIsNullObservable(),
+            this.userIsNotNullObservable(user)
+          )
+        )
+      )
+      .subscribe();
+    // .subscribe(user => {
+    //   let rabbitId = localStorage.getItem("queueItemRabbitId");
+    //   if (rabbitId == null) return;
+    //   let queueItem = user.queue.find(
+    //     queueItem => queueItem.rabbitId == rabbitId
+    //   );
+    //   if (queueItem == undefined) return;
+    //   this.queueItem = queueItem;
+    //   this.xAxisLimit = this.queueItem.numberOfEvaluations + 1000;
+    //   this.chartDatasets = [];
+    //   this.qualityIndicators.forEach(qualityIndicator => {
+    //     this.queueItem.results.forEach(result => {
+    //       this.chartDatasets.push({
+    //         label: qualityIndicator.name,
+    //         data: result[qualityIndicator.id].map((result, index) => ({
+    //           x: (index + 1) * 100,
+    //           y: result
+    //         })),
+    //         fill: false,
+    //         borderColor: "rgba(255, 0, 0, .3)",
+    //         pointRadius: 0,
+    //         borderWidth: 1,
+    //         hidden: !qualityIndicator.isActive,
+    //         id: qualityIndicator.id
+    //       });
+    //     });
+    //   });
+    //   if (this.chart) {
+    //     this.chart.data.datasets = this.chartDatasets;
+    //     this.chart.update();
+    //   }
+    // });
+  }
+
+  selectQueueObject(queueObject) {
+    queueObject.isActive = !queueObject.isActive;
   }
 
   selectQualityIndicator(qualityIndicator) {

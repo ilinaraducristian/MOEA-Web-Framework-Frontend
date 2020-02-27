@@ -1,7 +1,9 @@
+import { HttpEventType } from "@angular/common/http";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
 import { Subscription } from "rxjs";
+import { filter } from "rxjs/operators";
 import { User } from "src/app/entities/user";
 import { SessionService } from "src/app/services/session.service";
 import { compareTwoStrings } from "string-similarity";
@@ -12,16 +14,14 @@ import { compareTwoStrings } from "string-similarity";
   styleUrls: ["./problem.component.sass"]
 })
 export class ProblemComponent implements OnInit, OnDestroy {
-  public displayedProblems: string[];
-  public selectedProblem: string;
-
-  public displayedAlgorithms: string[];
-  public selectedAlgorithm: string;
-
-  public formGroup: FormGroup;
-  private subscriptions: Subscription[];
-
   public user: User;
+  public formGroup: FormGroup;
+  public displayed: {};
+  public selected: {};
+  public progress: {};
+
+  private files: {};
+  private subscriptions: Subscription[];
 
   constructor(
     private readonly sessionService: SessionService,
@@ -33,12 +33,19 @@ export class ProblemComponent implements OnInit, OnDestroy {
       numberOfSeeds: new FormControl(10)
     });
 
-    this.displayedProblems = [];
-    this.selectedProblem = "";
+    this.displayed = {};
+    this.selected = {};
 
-    this.displayedAlgorithms = [];
-    this.selectedAlgorithm = "";
+    this.displayed["problems"] = [];
+    this.selected["problem"] = "";
+
+    this.displayed["algorithms"] = [];
+    this.selected["algorithm"] = "";
     this.subscriptions = [];
+
+    this.progress = {};
+
+    this.files = {};
   }
 
   ngOnInit() {
@@ -46,26 +53,44 @@ export class ProblemComponent implements OnInit, OnDestroy {
       this.sessionService.user.subscribe(user => {
         this.user = user;
         if (user) {
-          this.displayedProblems = user.problems;
-          this.selectedProblem = user.problems[0];
-          this.displayedAlgorithms = user.algorithms;
-          this.selectedAlgorithm = user.algorithms[0];
+          this.displayed["problems"] = user.problems;
+          this.selected["problem"] = user.problems[0];
+          this.displayed["algorithms"] = user.algorithms;
+          this.selected["algorithm"] = user.algorithms[0];
         } else {
-          this.displayedProblems = [];
-          this.selectedProblem = "";
-          this.displayedAlgorithms = [];
-          this.selectedAlgorithm = "";
+          this.displayed["problems"] = [];
+          this.selected["problem"] = "";
+          this.displayed["algorithms"] = [];
+          this.selected["algorithm"] = "";
         }
       })
     );
   }
 
+  addFile(type: string, file: File) {
+    if (type !== "problem" && type != "algorithm") return;
+    this.files[type] = file;
+  }
+
+  uploadFile(type: string) {
+    if (type !== "problem" && type != "algorithm") return;
+    this.sessionService
+      .uploadFile(type, this.files[type])
+      .pipe(
+        filter(event => event != null),
+        filter(event => event.type === HttpEventType.UploadProgress)
+      )
+      .subscribe((event: any) => {
+        this.progress[type] = Math.round((100 * event.loaded) / event.total);
+      });
+  }
+
   search(type: string, itemToSearch: string) {
     if (type == "problem") {
       if (itemToSearch.length == 0) {
-        this.displayedProblems = this.user.problems;
+        this.displayed["problems"] = this.user.problems;
       } else {
-        this.displayedProblems = this.user.problems
+        this.displayed["problems"] = this.user.problems
           .map(item => [compareTwoStrings(item, itemToSearch), item])
           .sort((a, b) => b[0] - a[0])
           .map(item => item[1])
@@ -73,9 +98,9 @@ export class ProblemComponent implements OnInit, OnDestroy {
       }
     } else if (type == "algorithm") {
       if (itemToSearch.length == 0) {
-        this.displayedAlgorithms = this.user.algorithms;
+        this.displayed["algorithms"] = this.user.algorithms;
       } else {
-        this.displayedAlgorithms = this.user.algorithms
+        this.displayed["algorithms"] = this.user.algorithms
           .map(item => [compareTwoStrings(item, itemToSearch), item])
           .sort((a, b) => b[0] - a[0])
           .map(item => item[1])
@@ -87,9 +112,9 @@ export class ProblemComponent implements OnInit, OnDestroy {
 
   select(type: string, item: string) {
     if (type == "problem") {
-      this.selectedProblem = item;
+      this.selected["problem"] = item;
     } else if (type == "algorithm") {
-      this.selectedAlgorithm = item;
+      this.selected["algorithm"] = item;
     }
     return false;
   }
@@ -99,16 +124,14 @@ export class ProblemComponent implements OnInit, OnDestroy {
       this.sessionService
         .addQueueItem({
           name: this.formGroup.value.name,
-          problem: this.selectedProblem,
-          algorithm: this.selectedAlgorithm,
+          problem: this.selected["problem"],
+          algorithm: this.selected["algorithm"],
           numberOfEvaluations: this.formGroup.value.numberOfEvaluations,
           numberOfSeeds: this.formGroup.value.numberOfSeeds,
           status: "waiting",
           results: []
         })
-        .subscribe(() => {
-          this.router.navigate(["/queue"]);
-        })
+        .subscribe(() => this.router.navigate(["/queue"]))
     );
   }
 

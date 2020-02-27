@@ -1,14 +1,6 @@
-import {
-  Component,
-  EventEmitter,
-  OnDestroy,
-  OnInit,
-  Output
-} from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
-import { Subscription } from "rxjs";
-import { flatMap } from "rxjs/operators";
 import { SessionService } from "src/app/services/session.service";
 
 @Component({
@@ -17,11 +9,8 @@ import { SessionService } from "src/app/services/session.service";
   styleUrls: ["./login.component.sass"]
 })
 export class LoginComponent implements OnInit, OnDestroy {
-  @Output() loggedIn = new EventEmitter<boolean>();
-
   public formGroup: FormGroup;
   public badCredentials: boolean;
-  private subscription: Subscription;
 
   constructor(
     private readonly sessionService: SessionService,
@@ -37,26 +26,23 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   login() {
-    this.subscription = this.sessionService
+    this.sessionService
       .login({
         username: this.formGroup.value.username,
         password: this.formGroup.value.password
       })
-      .pipe(
-        flatMap(() => {
-          this.loggedIn.emit();
-          return this.router.navigate(["/"]);
-        })
-      )
-      .subscribe(null, response => {
-        if (response.error.message == "Bad credentials provided") {
-          this.badCredentials = true;
+      .subscribe(
+        () => this.router.navigate(["/"]),
+        response => {
+          if (response.error.message == "Bad credentials provided") {
+            this.badCredentials = true;
+          } else {
+            // internal error
+          }
         }
-      });
+      );
     return false;
   }
 
-  ngOnDestroy() {
-    if (this.subscription != null) this.subscription.unsubscribe();
-  }
+  ngOnDestroy() {}
 }

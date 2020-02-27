@@ -1,8 +1,8 @@
 import { Component, OnDestroy } from "@angular/core";
 import { NavigationEnd, Router } from "@angular/router";
 import { Subscription } from "rxjs";
-import { filter, flatMap, map } from "rxjs/operators";
-import { LoginComponent } from "./components/login/login.component";
+import { filter, map } from "rxjs/operators";
+import { UserType } from "src/environments/environment";
 import { User } from "./entities/user";
 import { SessionService } from "./services/session.service";
 
@@ -49,33 +49,22 @@ export class AppComponent implements OnDestroy {
     this.subscriptions.push(
       this.sessionService.user.subscribe(user => {
         this.user = user;
+        if (user == null) return;
+        if (user.id == UserType.User) {
+          this.loggedIn = true;
+        } else {
+          this.loggedIn = false;
+        }
       })
     );
-    let jwt = localStorage.getItem("jwt");
-    if (jwt != null) {
-      this.loggedIn = true;
-    }
   }
 
   signout() {
-    this.sessionService
-      .signOut()
-      .pipe(
-        flatMap(() => {
-          this.loggedIn = false;
-          return this.router.navigate(["/"]);
-        })
-      )
-      .subscribe();
+    this.sessionService.signOut().subscribe(() => {
+      this.loggedIn = false;
+      this.router.navigate(["/"]);
+    });
     return false;
-  }
-
-  onActivate(componentReference: Component) {
-    if (componentReference instanceof LoginComponent) {
-      componentReference.loggedIn.subscribe(() => {
-        this.loggedIn = true;
-      });
-    }
   }
 
   ngOnDestroy() {

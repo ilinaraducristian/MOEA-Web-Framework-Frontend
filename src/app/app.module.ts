@@ -45,7 +45,8 @@ import { SignupComponent } from "./components/signup/signup.component";
     }),
     JwtModule.forRoot({
       config: {
-        tokenGetter: () => localStorage.getItem("jwt")
+        tokenGetter: () => localStorage.getItem("jwt"),
+        whitelistedDomains: [environment.backendDomain]
       }
     })
   ],

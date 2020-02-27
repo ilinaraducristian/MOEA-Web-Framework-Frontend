@@ -24,6 +24,7 @@ import { User } from "../entities/user";
 })
 export class SessionService implements OnDestroy {
   private jsonHeaders: HttpHeaders;
+  private fileHeaders: HttpHeaders;
   private _guest: User = null;
   private _user: User = null;
   private _userOrGuest: User = null;
@@ -36,10 +37,14 @@ export class SessionService implements OnDestroy {
   constructor(
     private readonly indexedDBService: NgxIndexedDBService,
     private readonly rxStompService: RxStompService,
-    private readonly http: HttpClient
+    private readonly http: HttpClient,
+    private readonly jwtHelperService: JwtHelperService
   ) {
     this.jsonHeaders = new HttpHeaders({
       "Content-Type": "application/json"
+    });
+    this.fileHeaders = new HttpHeaders({
+      "Content-Type": "multipart/form-data"
     });
 
     this.rabbitSubscriptions = [];
@@ -117,12 +122,31 @@ export class SessionService implements OnDestroy {
     });
   }
 
+  /**
+   * Upload a problem or an algorithm to backend
+   * @param type Must be "problem" or "algorithm"
+   * @param file The file that will be uploaded
+   */
+  uploadFile(type: string, file: File) {
+    if (type !== "problem" && type != "algorithm") return;
+    let formData = new FormData();
+    formData.append("file", file, file.name);
+    return this.http
+      .put(`${environment.backend}/${type}/upload`, formData, {
+        reportProgress: true,
+        observe: "events"
+      })
+      .pipe(
+        tap(null, null, () =>
+          this._user[`${type}s`].push(file.name.replace(/\.class/, ""))
+        )
+      );
+  }
+
   private updateUser(user: User) {
     // if token expired return
     try {
-      const helper = new JwtHelperService();
-      let exp = helper.getTokenExpirationDate(localStorage.getItem("jwt"));
-      if (Date.now() - exp.getTime() >= 0) {
+      if (this.jwtHelperService.isTokenExpired()) {
         localStorage.removeItem("jwt");
         return Promise.resolve();
       }
@@ -143,7 +167,8 @@ export class SessionService implements OnDestroy {
         this._user = user;
         this._userOrGuest = user;
         this._userSubject.next(this._userOrGuest);
-      });
+      })
+      .catch(error => console.log(error));
   }
 
   removeUser() {

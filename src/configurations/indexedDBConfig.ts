@@ -6,7 +6,7 @@ export const indexedDBConfig: DBConfig = {
   objectStoresMeta: [
     {
       store: "users",
-      storeConfig: { keyPath: "id", autoIncrement: true },
+      storeConfig: { keyPath: "id", autoIncrement: false },
       storeSchema: [
         {
           name: "username",
