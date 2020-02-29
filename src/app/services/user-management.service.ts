@@ -95,6 +95,7 @@ export class UserManagementService implements OnDestroy {
         )
         .toPromise()
         .then(queue => {
+          console.log(queue);
           guest.queue = queue;
           guest.queue
             .filter(queueItem => queueItem.status == "working")

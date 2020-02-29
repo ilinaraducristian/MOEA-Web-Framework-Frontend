@@ -1,8 +1,14 @@
-import { Component, OnDestroy, OnInit, ViewChild } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild
+} from "@angular/core";
 import { Chart } from "chart.js";
-import { empty, Subscription } from "rxjs";
+import { Subscription } from "rxjs";
+import { filter } from "rxjs/operators";
 import { QueueItem } from "src/app/entities/queue-item";
-import { User } from "src/app/entities/user";
 import { UserManagementService } from "src/app/services/user-management.service";
 
 @Component({
@@ -11,23 +17,21 @@ import { UserManagementService } from "src/app/services/user-management.service"
   styleUrls: ["./results.component.sass"]
 })
 export class ResultsComponent implements OnInit, OnDestroy {
-  // Chart config
-
+  private chart: Chart;
   private chartDatasets: any[];
   private xAxisLimit = 500;
 
   public qualityIndicators: any[];
-  // public queueItem: QueueItem;
-  public queue: { isActive: boolean; queueItem: QueueItem }[];
+  public queueItem: QueueItem;
   private subscriptions: Subscription[];
   private userSubscription: Subscription;
 
-  private chart: Chart;
+  @ViewChild("graph", { static: false })
+  set context(context: ElementRef) {
+    this.showChart(context);
+  }
 
-  @ViewChild("graph", { static: true })
-  public context;
-
-  constructor(private readonly userManagementService: UserManagementService) {
+  constructor(private readonly sessionService: UserManagementService) {
     this.qualityIndicators = [
       {
         name: "Hypervolume",
@@ -93,23 +97,64 @@ export class ResultsComponent implements OnInit, OnDestroy {
     ];
     this.chartDatasets = [];
     this.subscriptions = [];
-    this.queue = [];
-  }
-
-  userIsNull() {
-    this.chartDatasets = [];
-    this.subscriptions = [];
-    this.queue = [];
-
-    return empty();
-  }
-
-  userIsNotNull(user: User) {
-    return empty();
   }
 
   ngOnInit() {
-    this.chart = new Chart(this.context.nativeElement, {
+    this.userSubscription = this.sessionService.user
+      .pipe(filter(user => user != null))
+      .subscribe(user => {
+        let rabbitId = localStorage.getItem("queueItemRabbitId");
+        if (rabbitId == null) return;
+        let queueItem = user.queue.find(
+          queueItem => queueItem.rabbitId == rabbitId
+        );
+        if (queueItem == undefined) return;
+        this.queueItem = queueItem;
+        this.xAxisLimit = this.queueItem.numberOfEvaluations + 1000;
+        this.chartDatasets = [];
+        this.qualityIndicators.forEach(qualityIndicator => {
+          this.queueItem.results.forEach(result => {
+            this.chartDatasets.push({
+              label: qualityIndicator.name,
+              data: result[qualityIndicator.id].map((result, index) => ({
+                x: (index + 1) * 100,
+                y: result
+              })),
+              fill: false,
+              borderColor: "rgba(255, 0, 0, .3)",
+              pointRadius: 0,
+              borderWidth: 1,
+              hidden: !qualityIndicator.isActive,
+              id: qualityIndicator.id
+            });
+          });
+        });
+        if (this.chart) {
+          this.chart.data.datasets = this.chartDatasets;
+          this.chart.update();
+        }
+      });
+  }
+
+  selectQualityIndicator(qualityIndicator) {
+    if (!this.chart) return false;
+    qualityIndicator.isActive = !qualityIndicator.isActive;
+    this.chartDatasets
+      .filter(dataset => dataset.id == qualityIndicator.id)
+      .map(dataset => {
+        dataset.hidden = !qualityIndicator.isActive;
+        return dataset;
+      });
+    this.chart.update();
+    return false;
+  }
+
+  showChart(context: ElementRef) {
+    if (context == undefined) {
+      this.chart = undefined;
+      return;
+    }
+    this.chart = new Chart(context.nativeElement, {
       type: "line",
       data: {
         datasets: this.chartDatasets
@@ -160,61 +205,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
         }
       }
     });
-    this.userSubscription = this.userManagementService.user.subscribe(user => {
-      if (user == null) this.userIsNull();
-      else {
-        this.userIsNotNull(user);
-      }
-    });
-    // .subscribe(user => {
-    //   let rabbitId = localStorage.getItem("queueItemRabbitId");
-    //   if (rabbitId == null) return;
-    //   let queueItem = user.queue.find(
-    //     queueItem => queueItem.rabbitId == rabbitId
-    //   );
-    //   if (queueItem == undefined) return;
-    //   this.queueItem = queueItem;
-    //   this.xAxisLimit = this.queueItem.numberOfEvaluations + 1000;
-    //   this.chartDatasets = [];
-    //   this.qualityIndicators.forEach(qualityIndicator => {
-    //     this.queueItem.results.forEach(result => {
-    //       this.chartDatasets.push({
-    //         label: qualityIndicator.name,
-    //         data: result[qualityIndicator.id].map((result, index) => ({
-    //           x: (index + 1) * 100,
-    //           y: result
-    //         })),
-    //         fill: false,
-    //         borderColor: "rgba(255, 0, 0, .3)",
-    //         pointRadius: 0,
-    //         borderWidth: 1,
-    //         hidden: !qualityIndicator.isActive,
-    //         id: qualityIndicator.id
-    //       });
-    //     });
-    //   });
-    //   if (this.chart) {
-    //     this.chart.data.datasets = this.chartDatasets;
-    //     this.chart.update();
-    //   }
-    // });
-  }
-
-  selectQueueObject(queueObject) {
-    queueObject.isActive = !queueObject.isActive;
-  }
-
-  selectQualityIndicator(qualityIndicator) {
-    if (!this.chart) return false;
-    qualityIndicator.isActive = !qualityIndicator.isActive;
-    this.chartDatasets
-      .filter(dataset => dataset.id == qualityIndicator.id)
-      .map(dataset => {
-        dataset.hidden = !qualityIndicator.isActive;
-        return dataset;
-      });
-    this.chart.update();
-    return false;
   }
 
   ngOnDestroy() {
