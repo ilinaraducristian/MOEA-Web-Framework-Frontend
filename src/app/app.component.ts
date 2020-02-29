@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { filter, map } from "rxjs/operators";
 import { UserType } from "src/environments/environment";
 import { User } from "./entities/user";
-import { SessionService } from "./services/session.service";
+import { UserManagementService } from "./services/user-management.service";
 
 @Component({
   selector: "app-root",
@@ -19,7 +19,7 @@ export class AppComponent implements OnDestroy {
 
   constructor(
     private readonly router: Router,
-    private readonly sessionService: SessionService
+    private readonly userManagementService: UserManagementService
   ) {
     this.activeRoute = "";
     this.user = null;
@@ -47,7 +47,7 @@ export class AppComponent implements OnDestroy {
         })
     );
     this.subscriptions.push(
-      this.sessionService.user.subscribe(user => {
+      this.userManagementService.user.subscribe(user => {
         this.user = user;
         if (user == null) return;
         if (user.id == UserType.User) {
@@ -60,7 +60,7 @@ export class AppComponent implements OnDestroy {
   }
 
   signout() {
-    this.sessionService.signOut().subscribe(() => {
+    this.userManagementService.signOut().subscribe(() => {
       this.loggedIn = false;
       this.router.navigate(["/"]);
     });

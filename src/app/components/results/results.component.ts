@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ViewChild } from "@angular/core";
 import { empty, Subscription } from "rxjs";
 import { User } from "src/app/entities/user";
-import { SessionService } from "src/app/services/session.service";
+import { UserManagementService } from "src/app/services/user-management.service";
 
 @Component({
   selector: "app-results",
@@ -23,7 +23,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
   @ViewChild("graph", { static: true })
   public chart: Chart;
 
-  constructor(private readonly sessionService: SessionService) {
+  constructor(private readonly userManagementService: UserManagementService) {
     this.qualityIndicators = [
       {
         name: "Hypervolume",
@@ -115,7 +115,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     console.log(this.chart);
-    this.userSubscription = this.sessionService.user.subscribe(user => {
+    this.userSubscription = this.userManagementService.user.subscribe(user => {
       if (user == null) this.userIsNull();
       else {
         this.userIsNotNull(user);

@@ -5,7 +5,7 @@ import { Router } from "@angular/router";
 import { Subscription } from "rxjs";
 import { filter } from "rxjs/operators";
 import { User } from "src/app/entities/user";
-import { SessionService } from "src/app/services/session.service";
+import { UserManagementService } from "src/app/services/user-management.service";
 import { compareTwoStrings } from "string-similarity";
 
 @Component({
@@ -24,7 +24,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[];
 
   constructor(
-    private readonly sessionService: SessionService,
+    private readonly userManagementService: UserManagementService,
     private readonly router: Router
   ) {
     this.formGroup = new FormGroup({
@@ -50,7 +50,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.subscriptions.push(
-      this.sessionService.user.subscribe(user => {
+      this.userManagementService.user.subscribe(user => {
         this.user = user;
         if (user) {
           this.displayed["problems"] = user.problems;
@@ -74,7 +74,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
 
   uploadFile(type: string) {
     if (type !== "problem" && type != "algorithm") return;
-    this.sessionService
+    this.userManagementService
       .uploadFile(type, this.files[type])
       .pipe(
         filter(event => event != null),
@@ -121,7 +121,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
 
   addQueueItem() {
     this.subscriptions.push(
-      this.sessionService
+      this.userManagementService
         .addQueueItem({
           name: this.formGroup.value.name,
           problem: this.selected["problem"],

@@ -1,16 +1,10 @@
-import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { HttpClient } from "@angular/common/http";
 import { Injectable, OnDestroy } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
 import { RxStompService } from "@stomp/ng2-stompjs";
 import { NgxIndexedDBService } from "ngx-indexed-db";
-import {
-  BehaviorSubject,
-  from,
-  Observable,
-  Subscription,
-  throwError
-} from "rxjs";
-import { flatMap, map, takeWhile, tap } from "rxjs/operators";
+import { BehaviorSubject, empty, from, Subscription, throwError } from "rxjs";
+import { catchError, flatMap, map, takeWhile, tap } from "rxjs/operators";
 import { environment, UserType } from "src/environments/environment";
 import { LoginUserDTO } from "../dto/login-user-dto";
 import { QueueItemDTO } from "../dto/queue-item-dto";
@@ -22,8 +16,7 @@ import { User } from "../entities/user";
 @Injectable({
   providedIn: "root"
 })
-export class SessionService implements OnDestroy {
-  private fileHeaders: HttpHeaders;
+export class UserManagementService implements OnDestroy {
   private _guest: User = null;
   private _user: User = null;
   private _userOrGuest: User = null;
@@ -39,29 +32,33 @@ export class SessionService implements OnDestroy {
     private readonly http: HttpClient,
     private readonly jwtHelperService: JwtHelperService
   ) {
-    this.fileHeaders = new HttpHeaders({
-      "Content-Type": "multipart/form-data"
-    });
-
     this.rabbitSubscriptions = [];
 
     // find guest
     this.indexedDBService
       .getByID("users", UserType.Guest)
       .then((guest: User | undefined) => {
+        let response;
         if (guest == undefined) {
           // guest not found, create guest
-          return this.createGuest();
+          response = this.createGuest();
         } else {
           // guest found, update queue, listen for queueitem change
-          return this.updateGuest(guest);
+          response = this.updateGuest(guest);
         }
+        return response.then(newGuest => {
+          console.log(newGuest);
+          this._guest = newGuest;
+          this._userOrGuest = newGuest;
+          this._userSubject.next(this._userOrGuest);
+        });
       })
       .then(() => this.indexedDBService.getByID("users", UserType.User))
       .then((user: User | undefined) => {
         if (user == undefined) return;
         return this.updateUser(user);
-      });
+      })
+      .catch();
   }
 
   get user() {
@@ -83,20 +80,14 @@ export class SessionService implements OnDestroy {
           queue: []
         };
 
-        return this.indexedDBService.add("users", guest).then(() => {
-          this._guest = guest;
-          this._userOrGuest = guest;
-          this._userSubject.next(this._userOrGuest);
-        });
-      })
-      .catch();
+        return this.indexedDBService.add("users", guest).then(() => guest);
+      });
   }
 
   private updateGuest(guest: User) {
-    let resolve;
-    if (guest.queue.length == 0) resolve = Promise.resolve();
+    if (guest.queue.length == 0) return Promise.resolve(guest);
     else {
-      resolve = this.http
+      return this.http
         .post<QueueItem[]>(
           `${environment.queues[UserType.Guest]}`,
           guest.queue.map(queueItem => queueItem.rabbitId)
@@ -109,36 +100,9 @@ export class SessionService implements OnDestroy {
             .forEach(queueItem => {
               this.addRabbitSubscription(queueItem);
             });
+          return Promise.resolve(guest);
         });
     }
-    return resolve
-      .then(() => {
-        this._guest = guest;
-        this._userOrGuest = guest;
-        this._userSubject.next(this._userOrGuest);
-      })
-      .catch();
-  }
-
-  /**
-   * Upload a problem or an algorithm to backend
-   * @param type Must be "problem" or "algorithm"
-   * @param file The file that will be uploaded
-   */
-  uploadFile(type: string, file: File) {
-    if (type !== "problem" && type != "algorithm") return;
-    let formData = new FormData();
-    formData.append("file", file, file.name);
-    return this.http
-      .put(`${environment.backend}/${type}/upload`, formData, {
-        reportProgress: true,
-        observe: "events"
-      })
-      .pipe(
-        tap(null, null, () =>
-          this._user[`${type}s`].push(file.name.replace(/\.class/, ""))
-        )
-      );
   }
 
   private updateUser(user: User) {
@@ -146,16 +110,15 @@ export class SessionService implements OnDestroy {
     try {
       if (this.jwtHelperService.isTokenExpired()) {
         localStorage.removeItem("jwt");
-        return Promise.resolve();
+        return Promise.reject();
       }
     } catch (error) {
-      return Promise.resolve();
+      return Promise.reject();
     }
     return this.http
       .get<QueueItem[]>(`${environment.queues[UserType.User]}`)
       .toPromise()
       .then(queue => {
-        if (queue == undefined) return;
         user.queue = queue;
         user.queue
           .filter(queueItem => queueItem.status == "working")
@@ -165,17 +128,15 @@ export class SessionService implements OnDestroy {
         this._user = user;
         this._userOrGuest = user;
         this._userSubject.next(this._userOrGuest);
-      })
-      .catch(error => console.log(error));
+      });
   }
 
-  removeUser() {
-    return this.indexedDBService.delete("users", UserType.User).then(() => {
-      this._user = null;
-      if (this._userOrGuest.id == UserType.User)
-        this._userOrGuest = this._guest;
-      this._userSubject.next(this._userOrGuest);
-    });
+  private updateUserOrGuest() {
+    return from(
+      this.indexedDBService.update("users", this._userOrGuest).then(() => {
+        this._userSubject.next(this._userOrGuest);
+      })
+    );
   }
 
   signup(registerUserDTO: RegisterUserDTO) {
@@ -207,6 +168,9 @@ export class SessionService implements OnDestroy {
   }
 
   signOut() {
+    this._user.queue.forEach(queueItem => {
+      this.removeQueueItem(queueItem);
+    });
     return from(
       this.indexedDBService.delete("users", UserType.User).then(() => {
         localStorage.removeItem("jwt");
@@ -214,13 +178,7 @@ export class SessionService implements OnDestroy {
         this._userOrGuest = this._guest;
         this._userSubject.next(this._userOrGuest);
       })
-    );
-  }
-
-  getGuestProblemsAndAlgorithms() {
-    return this.http
-      .get(`${environment.public}/getProblemsAndAlgorithms`)
-      .toPromise();
+    ).pipe(catchError(() => empty()));
   }
 
   addQueueItem(queueItem: QueueItem) {
@@ -232,20 +190,24 @@ export class SessionService implements OnDestroy {
       numberOfSeeds: queueItem.numberOfSeeds
     };
     return this.http
-      .post(`${environment.queues[this._user.id]}/addQueueItem`, queueItemDTO)
+      .post(
+        `${environment.queues[this._userOrGuest.id]}/addQueueItem`,
+        queueItemDTO
+      )
       .pipe(
         flatMap(response => {
           queueItem.rabbitId = response["rabbitId"];
           this._userOrGuest.queue.push(queueItem);
           return this.updateUserOrGuest();
-        })
+        }),
+        catchError(() => empty())
       );
   }
 
   solveQueueItem(queueItem: QueueItem) {
     return this.http
       .get(
-        `${environment.queues[this._user.id]}/solveQueueItem/${
+        `${environment.queues[this._userOrGuest.id]}/solveQueueItem/${
           queueItem.rabbitId
         }`
       )
@@ -259,12 +221,11 @@ export class SessionService implements OnDestroy {
       );
   }
 
-  private cancelQueueItem(queueItem: QueueItem) {
-    let request: Observable<any>;
+  cancelQueueItem(queueItem: QueueItem) {
     if (queueItem.status != "working")
       return throwError("QueueItem is not working");
     return this.http
-      .get(`${this._user.id}/cancelProblem/${queueItem.solverId}`)
+      .get(`${this._userOrGuest.id}/cancelProblem/${queueItem.solverId}`)
       .pipe(
         flatMap(() => {
           queueItem.solverId = undefined;
@@ -337,12 +298,31 @@ export class SessionService implements OnDestroy {
     });
   }
 
-  private updateUserOrGuest() {
-    return from(
-      this.indexedDBService.update("users", this._userOrGuest).then(() => {
-        this._userSubject.next(this._userOrGuest);
+  /**
+   * Upload a problem or an algorithm to backend
+   * @param type Must be "problem" or "algorithm"
+   * @param file The file that will be uploaded
+   */
+  uploadFile(type: string, file: File) {
+    if (type !== "problem" && type != "algorithm") return;
+    let formData = new FormData();
+    formData.append("file", file, file.name);
+    return this.http
+      .put(`${environment.backend}/${type}/upload`, formData, {
+        reportProgress: true,
+        observe: "events"
       })
-    );
+      .pipe(
+        tap(null, null, () =>
+          this._user[`${type}s`].push(file.name.replace(/\.class/, ""))
+        )
+      );
+  }
+
+  getGuestProblemsAndAlgorithms() {
+    return this.http
+      .get(`${environment.public}/getProblemsAndAlgorithms`)
+      .toPromise();
   }
 
   ngOnDestroy() {

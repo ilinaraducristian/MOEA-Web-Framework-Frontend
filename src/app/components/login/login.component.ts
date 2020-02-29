@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
-import { SessionService } from "src/app/services/session.service";
+import { UserManagementService } from "src/app/services/user-management.service";
 
 @Component({
   selector: "app-login",
@@ -13,7 +13,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   public badCredentials: boolean;
 
   constructor(
-    private readonly sessionService: SessionService,
+    private readonly userManagementService: UserManagementService,
     private readonly router: Router
   ) {}
 
@@ -26,7 +26,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   login() {
-    this.sessionService
+    this.userManagementService
       .login({
         username: this.formGroup.value.username,
         password: this.formGroup.value.password

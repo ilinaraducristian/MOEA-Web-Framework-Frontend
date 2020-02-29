@@ -3,7 +3,7 @@ import { Router } from "@angular/router";
 import { Subscription } from "rxjs";
 import { QueueItem } from "src/app/entities/queue-item";
 import { User } from "src/app/entities/user";
-import { SessionService } from "src/app/services/session.service";
+import { UserManagementService } from "src/app/services/user-management.service";
 
 @Component({
   selector: "app-queue",
@@ -15,7 +15,7 @@ export class QueueComponent implements OnInit, OnDestroy {
   public user: User;
 
   constructor(
-    private readonly sessionService: SessionService,
+    private readonly userManagementService: UserManagementService,
     private readonly router: Router
   ) {
     this.subscriptions = [];
@@ -23,14 +23,14 @@ export class QueueComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.subscriptions.push(
-      this.sessionService.user.subscribe(user => {
+      this.userManagementService.user.subscribe(user => {
         this.user = user;
       })
     );
   }
 
   solveQueueItem(queueItem: QueueItem) {
-    this.sessionService.solveQueueItem(queueItem).subscribe();
+    this.userManagementService.solveQueueItem(queueItem).subscribe();
     return false;
   }
 
@@ -41,7 +41,7 @@ export class QueueComponent implements OnInit, OnDestroy {
   }
 
   removeProblem(queueItem: QueueItem) {
-    this.sessionService.removeQueueItem(queueItem).subscribe();
+    this.userManagementService.removeQueueItem(queueItem).subscribe();
     return false;
   }
 

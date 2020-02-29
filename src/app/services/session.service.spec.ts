@@ -1,12 +1,11 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed } from "@angular/core/testing";
+import { UserManagementService } from "./user-management.service";
 
-import { SessionService } from './session.service';
-
-describe('SessionService', () => {
+describe("UserManagementService", () => {
   beforeEach(() => TestBed.configureTestingModule({}));
 
-  it('should be created', () => {
-    const service: SessionService = TestBed.get(SessionService);
+  it("should be created", () => {
+    const service: UserManagementService = TestBed.get(UserManagementService);
     expect(service).toBeTruthy();
   });
 });

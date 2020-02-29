@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
-import { SessionService } from "src/app/services/session.service";
+import { UserManagementService } from "src/app/services/user-management.service";
 
 @Component({
   selector: "app-signup",
@@ -12,7 +12,7 @@ export class SignupComponent implements OnInit, OnDestroy {
   public formGroup: FormGroup;
 
   constructor(
-    private readonly sessionService: SessionService,
+    private readonly userManagementService: UserManagementService,
     private readonly router: Router
   ) {}
 
@@ -28,7 +28,7 @@ export class SignupComponent implements OnInit, OnDestroy {
   }
 
   signup() {
-    this.sessionService
+    this.userManagementService
       .signup({
         username: this.formGroup.value.username,
         password: this.formGroup.value.password,
