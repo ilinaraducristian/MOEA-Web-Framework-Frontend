@@ -22,7 +22,10 @@ import { ProblemComponent } from "./components/problem/problem.component";
 import { QueueComponent } from "./components/queue/queue.component";
 import { ResultsComponent } from "./components/results/results.component";
 import { SignupComponent } from "./components/signup/signup.component";
-import { ChartComponent } from './components/chart/chart.component';
+
+export function tokenGetter() {
+  return localStorage.getItem("jwt");
+}
 
 @NgModule({
   declarations: [
@@ -32,8 +35,7 @@ import { ChartComponent } from './components/chart/chart.component';
     HomeComponent,
     QueueComponent,
     ProblemComponent,
-    ResultsComponent,
-    ChartComponent
+    ResultsComponent
   ],
   imports: [
     BrowserModule,
@@ -47,7 +49,7 @@ import { ChartComponent } from './components/chart/chart.component';
     }),
     JwtModule.forRoot({
       config: {
-        tokenGetter: () => localStorage.getItem("jwt"),
+        tokenGetter,
         whitelistedDomains: [environment.backendDomain]
       }
     })

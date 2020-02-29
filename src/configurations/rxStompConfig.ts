@@ -1,11 +1,12 @@
 import { InjectableRxStompConfig } from "@stomp/ng2-stompjs";
+import { environment } from "src/environments/environment";
 
 export const rxStompConfig: InjectableRxStompConfig = {
-  brokerURL: "ws://localhost:15674/ws",
+  brokerURL: environment.rabbitMQ.brokerURL,
 
   connectHeaders: {
-    login: "root",
-    passcode: "root"
+    login: environment.rabbitMQ.login,
+    passcode: environment.rabbitMQ.passcode
   },
 
   heartbeatIncoming: 0,

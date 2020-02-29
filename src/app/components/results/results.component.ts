@@ -1,5 +1,7 @@
 import { Component, OnDestroy, OnInit, ViewChild } from "@angular/core";
+import { Chart } from "chart.js";
 import { empty, Subscription } from "rxjs";
+import { QueueItem } from "src/app/entities/queue-item";
 import { User } from "src/app/entities/user";
 import { UserManagementService } from "src/app/services/user-management.service";
 
@@ -16,12 +18,14 @@ export class ResultsComponent implements OnInit, OnDestroy {
 
   public qualityIndicators: any[];
   // public queueItem: QueueItem;
-  public queue: {}[];
+  public queue: { isActive: boolean; queueItem: QueueItem }[];
   private subscriptions: Subscription[];
   private userSubscription: Subscription;
 
+  private chart: Chart;
+
   @ViewChild("graph", { static: true })
-  public chart: Chart;
+  public context;
 
   constructor(private readonly userManagementService: UserManagementService) {
     this.qualityIndicators = [
@@ -95,16 +99,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
   userIsNull() {
     this.chartDatasets = [];
     this.subscriptions = [];
-    this.queue = [
-      {
-        isActive: false,
-        queueItem: {
-          name: "Problem noua",
-          problem: "Belegundu",
-          algorithm: "CMA-ES"
-        }
-      }
-    ];
+    this.queue = [];
 
     return empty();
   }
@@ -114,7 +109,57 @@ export class ResultsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    console.log(this.chart);
+    this.chart = new Chart(this.context.nativeElement, {
+      type: "line",
+      data: {
+        datasets: this.chartDatasets
+      },
+      options: {
+        animation: {
+          duration: 0
+        },
+        hover: {
+          animationDuration: 0
+        },
+        responsiveAnimationDuration: 0,
+        legend: {
+          position: "bottom",
+          labels: {
+            filter: (label, data) => {
+              return false;
+            }
+          }
+        },
+        responsive: true,
+        scales: {
+          xAxes: [
+            {
+              type: "linear",
+              ticks: {
+                max: this.xAxisLimit
+              },
+              scaleLabel: {
+                display: true,
+                labelString: "Number of evaluations",
+                fontSize: 20,
+                fontStyle: "bold"
+              }
+            }
+          ],
+          yAxes: [
+            {
+              type: "linear",
+              scaleLabel: {
+                display: true,
+                labelString: "Value",
+                fontSize: 20,
+                fontStyle: "bold"
+              }
+            }
+          ]
+        }
+      }
+    });
     this.userSubscription = this.userManagementService.user.subscribe(user => {
       if (user == null) this.userIsNull();
       else {

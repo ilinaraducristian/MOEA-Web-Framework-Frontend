@@ -18,7 +18,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
   public formGroup: FormGroup;
   public displayed: {};
   public selected: {};
-  public progress: {};
+  public progress: { problem?: number; algorithm?: number };
 
   private files: {};
   private subscriptions: Subscription[];

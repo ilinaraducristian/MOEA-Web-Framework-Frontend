@@ -1,4 +1,5 @@
 const backend = `http://localhost:8080`;
+
 export const environment = {
   production: false,
   backend: backend,
@@ -10,7 +11,12 @@ export const environment = {
   public: `${backend}/public`,
   user: `${backend}/user`,
   problem: `${backend}/problem`,
-  algorithm: `${backend}/algorithm`
+  algorithm: `${backend}/algorithm`,
+  rabbitMQ: {
+    brokerURL: "ws://localhost:15674/ws",
+    login: "root",
+    passcode: "root"
+  }
 };
 
 export enum UserType {

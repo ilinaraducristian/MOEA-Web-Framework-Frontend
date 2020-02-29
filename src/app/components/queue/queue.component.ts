@@ -40,7 +40,7 @@ export class QueueComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  removeProblem(queueItem: QueueItem) {
+  removeQueueItem(queueItem: QueueItem) {
     this.userManagementService.removeQueueItem(queueItem).subscribe();
     return false;
   }

@@ -47,7 +47,6 @@ export class UserManagementService implements OnDestroy {
           response = this.updateGuest(guest);
         }
         return response.then(newGuest => {
-          console.log(newGuest);
           this._guest = newGuest;
           this._userOrGuest = newGuest;
           this._userSubject.next(this._userOrGuest);
@@ -58,7 +57,7 @@ export class UserManagementService implements OnDestroy {
         if (user == undefined) return;
         return this.updateUser(user);
       })
-      .catch();
+      .catch(error => {});
   }
 
   get user() {
@@ -110,7 +109,9 @@ export class UserManagementService implements OnDestroy {
     try {
       if (this.jwtHelperService.isTokenExpired()) {
         localStorage.removeItem("jwt");
-        return Promise.reject();
+        return this.indexedDBService
+          .delete("users", UserType.User)
+          .then(() => Promise.reject());
       }
     } catch (error) {
       return Promise.reject();
