@@ -23,7 +23,6 @@ import { User } from "../entities/user";
   providedIn: "root"
 })
 export class SessionService implements OnDestroy {
-  private jsonHeaders: HttpHeaders;
   private fileHeaders: HttpHeaders;
   private _guest: User = null;
   private _user: User = null;
@@ -40,9 +39,6 @@ export class SessionService implements OnDestroy {
     private readonly http: HttpClient,
     private readonly jwtHelperService: JwtHelperService
   ) {
-    this.jsonHeaders = new HttpHeaders({
-      "Content-Type": "application/json"
-    });
     this.fileHeaders = new HttpHeaders({
       "Content-Type": "multipart/form-data"
     });
@@ -92,7 +88,8 @@ export class SessionService implements OnDestroy {
           this._userOrGuest = guest;
           this._userSubject.next(this._userOrGuest);
         });
-      });
+      })
+      .catch();
   }
 
   private updateGuest(guest: User) {
@@ -102,8 +99,7 @@ export class SessionService implements OnDestroy {
       resolve = this.http
         .post<QueueItem[]>(
           `${environment.queues[UserType.Guest]}`,
-          guest.queue.map(queueItem => queueItem.rabbitId),
-          { headers: this.jsonHeaders }
+          guest.queue.map(queueItem => queueItem.rabbitId)
         )
         .toPromise()
         .then(queue => {
@@ -115,11 +111,13 @@ export class SessionService implements OnDestroy {
             });
         });
     }
-    return resolve.then(() => {
-      this._guest = guest;
-      this._userOrGuest = guest;
-      this._userSubject.next(this._userOrGuest);
-    });
+    return resolve
+      .then(() => {
+        this._guest = guest;
+        this._userOrGuest = guest;
+        this._userSubject.next(this._userOrGuest);
+      })
+      .catch();
   }
 
   /**
@@ -181,37 +179,31 @@ export class SessionService implements OnDestroy {
   }
 
   signup(registerUserDTO: RegisterUserDTO) {
-    return this.http.post(`${environment.user}/register`, registerUserDTO, {
-      headers: this.jsonHeaders
-    });
+    return this.http.post(`${environment.user}/register`, registerUserDTO);
   }
 
   login(loginUserDTO: LoginUserDTO) {
-    return this.http
-      .post(`${environment.user}/login`, loginUserDTO, {
-        headers: this.jsonHeaders
+    return this.http.post(`${environment.user}/login`, loginUserDTO).pipe(
+      flatMap(response => {
+        this._user = {
+          id: UserType.User,
+          username: response["username"],
+          email: response["email"],
+          firstName: response["firstName"],
+          lastName: response["lastName"],
+          problems: response["problems"],
+          algorithms: response["algorithms"],
+          queue: response["queue"]
+        };
+        return from(
+          this.indexedDBService.update("users", this._user).then(() => {
+            this._userOrGuest = this._user;
+            this._userSubject.next(this._userOrGuest);
+            localStorage.setItem("jwt", response["jwt"]);
+          })
+        );
       })
-      .pipe(
-        flatMap(response => {
-          this._user = {
-            id: UserType.User,
-            username: response["username"],
-            email: response["email"],
-            firstName: response["firstName"],
-            lastName: response["lastName"],
-            problems: response["problems"],
-            algorithms: response["algorithms"],
-            queue: response["queue"]
-          };
-          return from(
-            this.indexedDBService.update("users", this._user).then(() => {
-              this._userOrGuest = this._user;
-              this._userSubject.next(this._userOrGuest);
-              localStorage.setItem("jwt", response["jwt"]);
-            })
-          );
-        })
-      );
+    );
   }
 
   signOut() {
@@ -240,13 +232,11 @@ export class SessionService implements OnDestroy {
       numberOfSeeds: queueItem.numberOfSeeds
     };
     return this.http
-      .post(`${environment.queues[this._user.id]}/addQueueItem`, queueItemDTO, {
-        headers: this.jsonHeaders
-      })
+      .post(`${environment.queues[this._user.id]}/addQueueItem`, queueItemDTO)
       .pipe(
         flatMap(response => {
           queueItem.rabbitId = response["rabbitId"];
-          this._user.queue.push(queueItem);
+          this._userOrGuest.queue.push(queueItem);
           return this.updateUserOrGuest();
         })
       );
@@ -254,7 +244,11 @@ export class SessionService implements OnDestroy {
 
   solveQueueItem(queueItem: QueueItem) {
     return this.http
-      .get(`${this._user.id}/solveQueueItem/${queueItem.rabbitId}`)
+      .get(
+        `${environment.queues[this._user.id]}/solveQueueItem/${
+          queueItem.rabbitId
+        }`
+      )
       .pipe(
         flatMap(response => {
           queueItem.solverId = response["solverId"];
@@ -283,34 +277,27 @@ export class SessionService implements OnDestroy {
   removeQueueItem(queueItem: QueueItem) {
     if (queueItem.status == "working") {
       this.http
-        .get(`${this._user.id}/cancelProblem/${queueItem.solverId}`)
-        .pipe(
-          tap(() => {
-            queueItem.solverId = undefined;
-            queueItem.status = "waiting";
-          })
-        );
+        .get(
+          `${environment.queues[this._user.id]}/cancelProblem/${
+            queueItem.solverId
+          }`
+        )
+        .subscribe();
     }
-    let foundQueueItemIndex = this._user.queue.findIndex(
+    let foundQueueItemIndex = this._userOrGuest.queue.findIndex(
       item => queueItem === item
     );
+    if (foundQueueItemIndex == -1) return throwError("QueueItem not found");
     let foundSubscriptionIndex = this.rabbitSubscriptions.findIndex(
       object => object.queueItem === queueItem
     );
-    if (foundSubscriptionIndex != -1) {
-      this.rabbitSubscriptions[
-        foundSubscriptionIndex
-      ].subscription.unsubscribe();
-      this.rabbitSubscriptions.splice(foundSubscriptionIndex, 1);
-    } else {
+    if (foundSubscriptionIndex == -1)
       return throwError("Rabbit subscription not found");
-    }
-    if (foundQueueItemIndex != -1) {
-      this._user.queue.splice(foundQueueItemIndex, 1);
-      return this.updateUserOrGuest();
-    } else {
-      return throwError("QueueItem not found");
-    }
+    queueItem = null;
+    this.rabbitSubscriptions[foundSubscriptionIndex].subscription.unsubscribe();
+    this.rabbitSubscriptions.splice(foundSubscriptionIndex, 1);
+    this._userOrGuest.queue.splice(foundQueueItemIndex, 1);
+    return this.updateUserOrGuest();
   }
 
   addRabbitSubscription(queueItem: QueueItem) {

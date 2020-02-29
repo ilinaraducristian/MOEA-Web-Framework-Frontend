@@ -22,6 +22,7 @@ import { ProblemComponent } from "./components/problem/problem.component";
 import { QueueComponent } from "./components/queue/queue.component";
 import { ResultsComponent } from "./components/results/results.component";
 import { SignupComponent } from "./components/signup/signup.component";
+import { ChartComponent } from './components/chart/chart.component';
 
 @NgModule({
   declarations: [
@@ -31,7 +32,8 @@ import { SignupComponent } from "./components/signup/signup.component";
     HomeComponent,
     QueueComponent,
     ProblemComponent,
-    ResultsComponent
+    ResultsComponent,
+    ChartComponent
   ],
   imports: [
     BrowserModule,

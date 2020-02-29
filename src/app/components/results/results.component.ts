@@ -1,13 +1,5 @@
-import {
-  Component,
-  ElementRef,
-  OnDestroy,
-  OnInit,
-  ViewChild
-} from "@angular/core";
-import { Chart } from "chart.js";
-import { empty, iif, Subscription } from "rxjs";
-import { flatMap } from "rxjs/operators";
+import { Component, OnDestroy, OnInit, ViewChild } from "@angular/core";
+import { empty, Subscription } from "rxjs";
 import { User } from "src/app/entities/user";
 import { SessionService } from "src/app/services/session.service";
 
@@ -18,7 +10,7 @@ import { SessionService } from "src/app/services/session.service";
 })
 export class ResultsComponent implements OnInit, OnDestroy {
   // Chart config
-  private chart: Chart;
+
   private chartDatasets: any[];
   private xAxisLimit = 500;
 
@@ -28,10 +20,8 @@ export class ResultsComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[];
   private userSubscription: Subscription;
 
-  @ViewChild("graph", { static: false })
-  set context(context: ElementRef) {
-    this.showChart(context);
-  }
+  @ViewChild("graph", { static: true })
+  public chart: Chart;
 
   constructor(private readonly sessionService: SessionService) {
     this.qualityIndicators = [
@@ -102,7 +92,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     this.queue = [];
   }
 
-  userIsNullObservable() {
+  userIsNull() {
     this.chartDatasets = [];
     this.subscriptions = [];
     this.queue = [
@@ -119,22 +109,18 @@ export class ResultsComponent implements OnInit, OnDestroy {
     return empty();
   }
 
-  userIsNotNullObservable(user: User) {
+  userIsNotNull(user: User) {
     return empty();
   }
 
   ngOnInit() {
-    this.userSubscription = this.sessionService.user
-      .pipe(
-        flatMap(user =>
-          iif(
-            () => user == null,
-            this.userIsNullObservable(),
-            this.userIsNotNullObservable(user)
-          )
-        )
-      )
-      .subscribe();
+    console.log(this.chart);
+    this.userSubscription = this.sessionService.user.subscribe(user => {
+      if (user == null) this.userIsNull();
+      else {
+        this.userIsNotNull(user);
+      }
+    });
     // .subscribe(user => {
     //   let rabbitId = localStorage.getItem("queueItemRabbitId");
     //   if (rabbitId == null) return;
@@ -184,64 +170,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
       });
     this.chart.update();
     return false;
-  }
-
-  showChart(context: ElementRef) {
-    if (context == undefined) {
-      this.chart = undefined;
-      return;
-    }
-    this.chart = new Chart(context.nativeElement, {
-      type: "line",
-      data: {
-        datasets: this.chartDatasets
-      },
-      options: {
-        animation: {
-          duration: 0
-        },
-        hover: {
-          animationDuration: 0
-        },
-        responsiveAnimationDuration: 0,
-        legend: {
-          position: "bottom",
-          labels: {
-            filter: (label, data) => {
-              return false;
-            }
-          }
-        },
-        responsive: true,
-        scales: {
-          xAxes: [
-            {
-              type: "linear",
-              ticks: {
-                max: this.xAxisLimit
-              },
-              scaleLabel: {
-                display: true,
-                labelString: "Number of evaluations",
-                fontSize: 20,
-                fontStyle: "bold"
-              }
-            }
-          ],
-          yAxes: [
-            {
-              type: "linear",
-              scaleLabel: {
-                display: true,
-                labelString: "Value",
-                fontSize: 20,
-                fontStyle: "bold"
-              }
-            }
-          ]
-        }
-      }
-    });
   }
 
   ngOnDestroy() {
