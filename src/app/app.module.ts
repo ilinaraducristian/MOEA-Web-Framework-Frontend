@@ -4,6 +4,7 @@ import { ReactiveFormsModule } from "@angular/forms";
 import { BrowserModule } from "@angular/platform-browser";
 import { ServiceWorkerModule } from "@angular/service-worker";
 import { JwtModule } from "@auth0/angular-jwt";
+import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
 import { NgbModule } from "@ng-bootstrap/ng-bootstrap";
 import {
   InjectableRxStompConfig,
@@ -44,6 +45,7 @@ export function tokenGetter() {
     NgxIndexedDBModule.forRoot(indexedDBConfig),
     HttpClientModule,
     ReactiveFormsModule,
+    FontAwesomeModule,
     ServiceWorkerModule.register("ngsw-worker.js", {
       enabled: environment.production
     }),

@@ -57,7 +57,9 @@ export class UserManagementService implements OnDestroy {
         if (user == undefined) return;
         return this.updateUser(user);
       })
-      .catch(error => {});
+      .catch(error => {
+        console.log(error);
+      });
   }
 
   get user() {

@@ -42,23 +42,32 @@
       </td>
 
       <td>
-        <a (click)="solveQueueItem(queueItem)" href="#">
-          <img
+        <fa-icon
+          [icon]="faTrash"
+          class="btn"
+          (click)="removeQueueItem(queueItem)"
+        ></fa-icon>
+        <fa-icon
+          [icon]="faPlay"
+          class="btn"
+          (click)="solveQueueItem(queueItem)"
+        ></fa-icon>
+        <fa-icon [icon]="faTimes" class="btn"></fa-icon>
+        <!-- <img
             src="assets/run.png"
             alt="Run"
             title="Run"
             width="20px"
             style="margin-right: .5rem;"
-          />
-        </a>
-        <a (click)="removeQueueItem(queueItem)" href="#">
+          /> -->
+        <!-- <a (click)="removeQueueItem(queueItem)" href="#">
           <img
             src="assets/remove.png"
             alt="Remove"
             title="Remove"
             width="20px"
           />
-        </a>
+        </a> -->
       </td>
       <td>
         <button

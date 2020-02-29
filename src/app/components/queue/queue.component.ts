@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
+import { faPlay, faTimes, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { Subscription } from "rxjs";
 import { QueueItem } from "src/app/entities/queue-item";
 import { User } from "src/app/entities/user";
@@ -11,6 +12,10 @@ import { UserManagementService } from "src/app/services/user-management.service"
   styleUrls: ["./queue.component.sass"]
 })
 export class QueueComponent implements OnInit, OnDestroy {
+  faTrash = faTrash;
+  faPlay = faPlay;
+  faTimes = faTimes;
+
   private subscriptions: Subscription[];
   public user: User;
 
