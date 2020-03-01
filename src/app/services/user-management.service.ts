@@ -67,7 +67,7 @@ export class UserManagementService implements OnDestroy {
   }
 
   private createGuest() {
-    this.http
+    return this.http
       .get(`${environment.public}/getProblemsAndAlgorithms`)
       .toPromise()
       .then(response => {
@@ -95,7 +95,6 @@ export class UserManagementService implements OnDestroy {
         )
         .toPromise()
         .then(queue => {
-          console.log(queue);
           guest.queue = queue;
           guest.queue
             .filter(queueItem => queueItem.status == "working")
@@ -229,10 +228,15 @@ export class UserManagementService implements OnDestroy {
     if (queueItem.status != "working")
       return throwError("QueueItem is not working");
     return this.http
-      .get(`${this._userOrGuest.id}/cancelProblem/${queueItem.solverId}`)
+      .get(
+        `${environment.queues[this._userOrGuest.id]}/cancelQueueItem/${
+          queueItem.solverId
+        }`
+      )
       .pipe(
         flatMap(() => {
           queueItem.solverId = undefined;
+          queueItem.progress = undefined;
           queueItem.status = "waiting";
           return this.updateUserOrGuest();
         })
@@ -243,8 +247,8 @@ export class UserManagementService implements OnDestroy {
     if (queueItem.status == "working") {
       this.http
         .get(
-          `${environment.queues[this._user.id]}/cancelProblem/${
-            queueItem.solverId
+          `${environment.queues[this._userOrGuest.id]}/removeQueueItem/${
+            queueItem.rabbitId
           }`
         )
         .subscribe();
@@ -256,18 +260,19 @@ export class UserManagementService implements OnDestroy {
     let foundSubscriptionIndex = this.rabbitSubscriptions.findIndex(
       object => object.queueItem === queueItem
     );
-    if (foundSubscriptionIndex == -1)
-      return throwError("Rabbit subscription not found");
-    queueItem = null;
-    this.rabbitSubscriptions[foundSubscriptionIndex].subscription.unsubscribe();
-    this.rabbitSubscriptions.splice(foundSubscriptionIndex, 1);
+    if (foundSubscriptionIndex != -1) {
+      this.rabbitSubscriptions[
+        foundSubscriptionIndex
+      ].subscription.unsubscribe();
+      this.rabbitSubscriptions.splice(foundSubscriptionIndex, 1);
+    }
     this._userOrGuest.queue.splice(foundQueueItemIndex, 1);
     return this.updateUserOrGuest();
   }
 
   addRabbitSubscription(queueItem: QueueItem) {
     let rabbitRoute;
-    if (this._user.id == UserType.Guest) {
+    if (this._userOrGuest.id == UserType.Guest) {
       rabbitRoute = `guest.${queueItem.rabbitId}`;
     } else {
       rabbitRoute = `user.${this._user.username}.${queueItem.rabbitId}`;
@@ -297,7 +302,9 @@ export class UserManagementService implements OnDestroy {
             return this.updateUserOrGuest();
           })
         )
-        .subscribe(),
+        .subscribe(null, error => {
+          console.log(error);
+        }),
       queueItem
     });
   }
@@ -317,9 +324,9 @@ export class UserManagementService implements OnDestroy {
         observe: "events"
       })
       .pipe(
-        tap(null, null, () =>
-          this._user[`${type}s`].push(file.name.replace(/\.class/, ""))
-        )
+        tap(null, null, () => {
+          this._user[`${type}s`].push(file.name.replace(/\.class/, ""));
+        })
       );
   }
 

@@ -18,7 +18,7 @@
   <tbody *ngIf="user">
     <tr *ngFor="let queueItem of user.queue">
       <th scope="row">{{ queueItem.name }}</th>
-      <td>{{ queueItem.name }}</td>
+      <td>{{ queueItem.problem }}</td>
       <td>
         {{ queueItem.algorithm }}
       </td>
@@ -43,31 +43,20 @@
 
       <td>
         <fa-icon
-          [icon]="faTrash"
-          class="btn"
-          (click)="removeQueueItem(queueItem)"
-        ></fa-icon>
-        <fa-icon
           [icon]="faPlay"
           class="btn"
           (click)="solveQueueItem(queueItem)"
         ></fa-icon>
-        <fa-icon [icon]="faTimes" class="btn"></fa-icon>
-        <!-- <img
-            src="assets/run.png"
-            alt="Run"
-            title="Run"
-            width="20px"
-            style="margin-right: .5rem;"
-          /> -->
-        <!-- <a (click)="removeQueueItem(queueItem)" href="#">
-          <img
-            src="assets/remove.png"
-            alt="Remove"
-            title="Remove"
-            width="20px"
-          />
-        </a> -->
+        <fa-icon
+          [icon]="faTimes"
+          class="btn"
+          (click)="cancelQueueItem(queueItem)"
+        ></fa-icon>
+        <fa-icon
+          [icon]="faTrash"
+          class="btn"
+          (click)="removeQueueItem(queueItem)"
+        ></fa-icon>
       </td>
       <td>
         <button

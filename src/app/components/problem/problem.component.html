@@ -1,156 +1,172 @@
-<div class="container" *ngIf="user">
-  <form [formGroup]="formGroup">
-    <div class="row">
-      <div class="form-group col-sm-4">
-        <label for="name">Name:</label>
-        <input
-          type="text"
-          class="input-field"
-          id="name"
-          formControlName="name"
-        />
+<form [formGroup]="formGroup" class="container-fluid" *ngIf="user">
+  <div class="row">
+    <!-- first column -->
+    <div class="col-sm-3">
+      <div class="row">
+        <div class="form-group ">
+          <label for="name">Name:</label>
+          <input type="text" id="name" formControlName="name" />
+        </div>
       </div>
-      <label for="problemUpload">
-        Upload problem:
-      </label>
-      <input
-        id="problemUpload"
-        type="file"
-        (change)="addFile('problem', $event.target.files[0])"
-      />
-      <ngb-progressbar
-        *ngIf="progress.problem"
-        type="info"
-        [value]="progress.problem"
-        [striped]="true"
-        [animated]="true"
-      >
-        <i class="col-sm-2">{{ progress.problem }}% </i>
-      </ngb-progressbar>
-      <button
-        type="button"
-        class="btn btn-primary"
-        style="height: min-content;"
-        (click)="uploadFile('problem')"
-      >
-        Upload problem
-      </button>
-    </div>
-    <div class="row">
-      <div class="form-group col-sm-4">
-        <label for="problem">Problem:</label>
-        <div class="d-inline-block input-field" id="problem" ngbDropdown>
-          <button
-            class="btn btn-outline-primary"
-            ngbDropdownToggle
-            (click)="(false)"
-          >
-            {{ selected["problem"] }}
-          </button>
-          <div ngbDropdownMenu>
-            <input
-              type="text"
-              class="form-control"
-              (keyup)="search('problem', $event.target.value)"
-            />
+      <div class="row">
+        <div class="form-group ">
+          <label for="problem">Problem:</label>
+          <div class="d-inline-block " id="problem" ngbDropdown>
             <button
-              ngbDropdownItem
-              *ngFor="let problem of displayed['problems']"
-              (click)="select('problem', problem)"
+              class="btn btn-outline-primary"
+              ngbDropdownToggle
+              (click)="(false)"
             >
-              {{ problem }}
+              {{ selected["problem"] }}
             </button>
+            <div ngbDropdownMenu>
+              <input
+                type="text"
+                class="form-control"
+                (keyup)="search('problem', $event.target.value)"
+              />
+              <button
+                ngbDropdownItem
+                *ngFor="let problem of displayed['problems']"
+                (click)="select('problem', problem)"
+              >
+                {{ problem }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      <label for="algorithmUpload">
-        Upload algorithm:
-      </label>
-      <input
-        id="algorithmUpload"
-        type="file"
-        (change)="addFile('algorithm', $event.target.files[0])"
-      />
-      <ngb-progressbar
-        *ngIf="progress.algorithm"
-        type="info"
-        [value]="progress.algorithm"
-        [striped]="true"
-        [animated]="true"
-      >
-        <i class="col-sm-2">{{ progress.algorithm }}% </i>
-      </ngb-progressbar>
-      <button
-        type="button"
-        class="btn btn-primary"
-        style="height: min-content;"
-        (click)="uploadFile('algorithm')"
-      >
-        Upload algorithm
-      </button>
-    </div>
-    <div class="row">
-      <div class="form-group col-sm-4">
-        <label for="algorithm">Algorithm:</label>
-        <div class="d-inline-block input-field" id="algorithm" ngbDropdown>
-          <button
-            class="btn btn-outline-primary"
-            ngbDropdownToggle
-            (click)="(false)"
-          >
-            {{ selected["algorithm"] }}
-          </button>
-          <div ngbDropdownMenu>
-            <input
-              type="text"
-              class="form-control"
-              (keyup)="search('algorithm', $event.target.value)"
-            />
+      <div class="row">
+        <div class="form-group ">
+          <label for="algorithm">Algorithm:</label>
+          <div class="d-inline-block " id="algorithm" ngbDropdown>
             <button
-              ngbDropdownItem
-              *ngFor="let algorithm of displayed['algorithms']"
-              (click)="select('algorithm', algorithm)"
+              class="btn btn-outline-primary"
+              ngbDropdownToggle
+              (click)="(false)"
             >
-              {{ algorithm }}
+              {{ selected["algorithm"] }}
             </button>
+            <div ngbDropdownMenu>
+              <input
+                type="text"
+                class="form-control"
+                (keyup)="search('algorithm', $event.target.value)"
+              />
+              <button
+                ngbDropdownItem
+                *ngFor="let algorithm of displayed['algorithms']"
+                (click)="select('algorithm', algorithm)"
+              >
+                {{ algorithm }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="row">
-      <div class="form-group col-sm-4">
-        <label for="seeds">Seeds:</label>
-        <input
-          type="number"
-          class="input-field"
-          min="1"
-          value="10"
-          formControlName="numberOfSeeds"
-        />
+      <div class="row">
+        <div class="form-group ">
+          <label for="seeds">Seeds:</label>
+          <input
+            type="number"
+            min="1"
+            value="10"
+            formControlName="numberOfSeeds"
+          />
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group ">
+          <label for="maxnfe">Max NFE:</label>
+          <input
+            type="number"
+            min="500"
+            step="100"
+            value="10000"
+            formControlName="numberOfEvaluations"
+          />
+        </div>
       </div>
     </div>
-    <div class="row">
-      <div class="form-group col-sm-4">
-        <label for="maxnfe">Max NFE:</label>
-        <input
-          type="number"
-          class="input-field"
-          min="500"
-          step="100"
-          value="10000"
-          formControlName="numberOfEvaluations"
-        />
+    <div class="col-sm-9" *ngIf="user.id == 1">
+      <div class="row" style="margin-bottom: 1rem;">
+        <div class="col-sm-3">
+          <label for="problemUpload">
+            Upload problem:
+          </label>
+        </div>
+        <div class="col-sm-4">
+          <input
+            id="problemUpload"
+            type="file"
+            (change)="addFile('problem', $event.target.files[0])"
+          />
+        </div>
+        <ngb-progressbar
+          class="col-sm-2"
+          type="info"
+          *ngIf="progress.problem"
+          [value]="progress.problem"
+          [striped]="true"
+          [animated]="true"
+        >
+          <i>{{ progress.problem }}% </i>
+        </ngb-progressbar>
+        <div class="col-sm-3">
+          <button
+            type="button"
+            class="btn btn-primary"
+            style="height: min-content;width:100%"
+            (click)="uploadFile('problem')"
+          >
+            Upload problem
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-3">
+          <label for="algorithmUpload">
+            Upload algorithm:
+          </label>
+        </div>
+        <div class="col-sm-4">
+          <input
+            id="algorithmUpload"
+            type="file"
+            (change)="addFile('algorithm', $event.target.files[0])"
+          />
+        </div>
+        <ngb-progressbar
+          class="col-sm-2"
+          *ngIf="progress.algorithm"
+          type="info"
+          [value]="progress.algorithm"
+          [striped]="true"
+          [animated]="true"
+        >
+          <i>{{ progress.algorithm }}% </i>
+        </ngb-progressbar>
+        <div class="col-sm-3">
+          <button
+            type="button"
+            class="btn btn-primary"
+            style="height: min-content;width:100%"
+            (click)="uploadFile('algorithm')"
+          >
+            Upload algorithm
+          </button>
+        </div>
       </div>
     </div>
-    <div class="row">
-      <button
-        style="margin-left: 1rem;"
-        type="button"
-        class="btn btn-primary"
-        (click)="addQueueItem()"
-      >
-        Add to queue
-      </button>
-    </div>
-  </form>
-</div>
+  </div>
+  <div class="row">
+    <button
+      style="margin-left: 1rem;"
+      type="button"
+      class="btn btn-primary"
+      (click)="addQueueItem()"
+    >
+      Add to queue
+    </button>
+  </div>
+</form>

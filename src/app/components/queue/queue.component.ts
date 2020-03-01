@@ -35,18 +35,26 @@ export class QueueComponent implements OnInit, OnDestroy {
   }
 
   solveQueueItem(queueItem: QueueItem) {
-    this.userManagementService.solveQueueItem(queueItem).subscribe();
+    this.userManagementService
+      .solveQueueItem(queueItem)
+      .subscribe(null, error => {
+        console.log(error);
+      });
+    return false;
+  }
+
+  cancelQueueItem(queueItem: QueueItem) {
+    this.userManagementService.cancelQueueItem(queueItem).subscribe();
+  }
+
+  removeQueueItem(queueItem: QueueItem) {
+    this.userManagementService.removeQueueItem(queueItem).subscribe();
     return false;
   }
 
   showResults(queueItem: QueueItem) {
     localStorage.setItem("queueItemRabbitId", queueItem.rabbitId);
     this.router.navigate(["/results"]);
-    return false;
-  }
-
-  removeQueueItem(queueItem: QueueItem) {
-    this.userManagementService.removeQueueItem(queueItem).subscribe();
     return false;
   }
 
