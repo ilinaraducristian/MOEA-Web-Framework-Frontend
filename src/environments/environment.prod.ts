@@ -1,8 +1,8 @@
-const backend = `http://custom-domain`;
+const backend = `https://moea-web-framework.herokuapp.com/`;
 export const environment = {
   production: true,
   backend: backend,
-  backendDomain: "custom-domain",
+  backendDomain: "https://moea-web-framework.herokuapp.com/",
   queues: [
     `${backend}/queue`, // Guest queue
     `${backend}/user/queue` // User queue
@@ -14,7 +14,7 @@ export const environment = {
   rabbitMQ: {
     brokerURL: "ws://custom-broker/ws",
     login: "root",
-    passcode: "root"
+    passcode: process.env.rabbitmq_password
   }
 };
 
