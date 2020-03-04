@@ -33,6 +33,7 @@ export class UserManagementService implements OnDestroy {
     private readonly jwtHelperService: JwtHelperService
   ) {
     this.rabbitSubscriptions = [];
+    this.rxStompService.deactivate();
 
     // find guest
     this.indexedDBService
@@ -314,7 +315,7 @@ export class UserManagementService implements OnDestroy {
     return this.http
       .get(
         `${environment.queues[this._userOrGuest.id]}/solveQueueItem/${
-          queueItem.rabbitId
+        queueItem.rabbitId
         }`
       )
       .pipe(
@@ -333,7 +334,7 @@ export class UserManagementService implements OnDestroy {
     return this.http
       .get(
         `${environment.queues[this._userOrGuest.id]}/cancelQueueItem/${
-          queueItem.solverId
+        queueItem.solverId
         }`
       )
       .pipe(
@@ -351,7 +352,7 @@ export class UserManagementService implements OnDestroy {
       this.http
         .get(
           `${environment.queues[this._userOrGuest.id]}/removeQueueItem/${
-            queueItem.rabbitId
+          queueItem.rabbitId
           }`
         )
         .subscribe();

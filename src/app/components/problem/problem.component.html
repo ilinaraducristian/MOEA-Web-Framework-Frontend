@@ -1,6 +1,60 @@
 <form [formGroup]="formGroup" class="container-fluid" *ngIf="user">
+
+  <div class="form-group row">
+    <label for="name" class="col-sm-1">Name</label>
+    <input type="name" class="form-control col-sm-11" id="name" placeholder="Enter name">
+  </div>
+
+  <div class="form-group">
+    <label for="problem">Problem</label>
+    <div class="d-inline-block " id="problem" ngbDropdown>
+      <button class="btn btn-outline-primary" ngbDropdownToggle (click)="(false)">
+        {{ selected["problem"] }}
+      </button>
+      <div ngbDropdownMenu>
+        <input type="text" class="form-control" (keyup)="search('problem', $event.target.value)" />
+        <button ngbDropdownItem *ngFor="let problem of displayed['problems']" (click)="select('problem', problem)">
+          {{ problem }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="algorithm">Algorithm</label>
+    <div class="d-inline-block " id="algorithm" ngbDropdown>
+      <button class="btn btn-outline-primary" ngbDropdownToggle (click)="(false)">
+        {{ selected["algorithm"] }}
+      </button>
+      <div ngbDropdownMenu>
+        <input type="text" class="form-control" (keyup)="search('algorithm', $event.target.value)" />
+        <button ngbDropdownItem *ngFor="let algorithm of displayed['algorithms']"
+          (click)="select('algorithm', algorithm)">
+          {{ algorithm }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="seeds">Seeds</label>
+    <input id="seeds" type="number" min="1" value="10" formControlName="numberOfSeeds" />
+  </div>
+
+  <div class="form-group">
+    <label for="maxnfe">Max NFE</label>
+    <input id="maxnfe" type="number" min="500" step="100" value="10000" formControlName="numberOfEvaluations" />
+  </div>
+
+  <button style="margin-left: 1rem;" type="button" class="btn btn-primary" (click)="addQueueItem()">
+    Add to queue
+  </button>
+</form>
+
+<!--
+<form [formGroup]="formGroup" class="container-fluid" *ngIf="user">
+
   <div class="row">
-    <!-- first column -->
     <div class="col-sm-3">
       <div class="row">
         <div class="form-group ">
@@ -169,4 +223,4 @@
       Add to queue
     </button>
   </div>
-</form>
+</form> -->

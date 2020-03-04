@@ -14,7 +14,7 @@ export const environment = {
   rabbitMQ: {
     brokerURL: "ws://custom-broker/ws",
     login: "root",
-    passcode: process.env.rabbitmq_password
+    passcode: ""
   }
 };
 
