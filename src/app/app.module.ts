@@ -1,4 +1,4 @@
-import { HttpClientModule } from "@angular/common/http";
+import { HttpClientModule, HTTP_INTERCEPTORS } from "@angular/common/http";
 import { NgModule } from "@angular/core";
 import { ReactiveFormsModule } from "@angular/forms";
 import { BrowserModule } from "@angular/platform-browser";
@@ -23,6 +23,7 @@ import { ProblemComponent } from "./components/problem/problem.component";
 import { QueueComponent } from "./components/queue/queue.component";
 import { ResultsComponent } from "./components/results/results.component";
 import { SignupComponent } from "./components/signup/signup.component";
+import { CustomHttpInterceptor } from "./custom-http-interceptor";
 
 export function tokenGetter() {
   return localStorage.getItem("jwt");
@@ -65,6 +66,11 @@ export function tokenGetter() {
       provide: RxStompService,
       useFactory: rxStompServiceFactory,
       deps: [InjectableRxStompConfig]
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: CustomHttpInterceptor,
+      multi: true
     }
   ],
   bootstrap: [AppComponent]

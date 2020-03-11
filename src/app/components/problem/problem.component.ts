@@ -1,11 +1,14 @@
-import { HttpEventType } from "@angular/common/http";
+import { HttpClient, HttpEventType } from "@angular/common/http";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
+import { NgbTooltip } from "@ng-bootstrap/ng-bootstrap";
 import { Subscription } from "rxjs";
-import { filter } from "rxjs/operators";
+import { filter, flatMap } from "rxjs/operators";
+import { QueueItem } from "src/app/entities/queue-item";
 import { User } from "src/app/entities/user";
 import { UserManagementService } from "src/app/services/user-management.service";
+import { environment } from "src/environments/environment";
 import { compareTwoStrings } from "string-similarity";
 
 @Component({
@@ -17,15 +20,18 @@ export class ProblemComponent implements OnInit, OnDestroy {
   public user: User;
   public formGroup: FormGroup;
   public displayed: {};
-  public selected: {};
+  public selected: { problem?: string; algorithm?: string };
   public progress: { problem?: number; algorithm?: number };
 
   private files: {};
   private subscriptions: Subscription[];
 
+  public isBackendOnline: boolean;
+
   constructor(
     private readonly userManagementService: UserManagementService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly http: HttpClient
   ) {
     this.formGroup = new FormGroup({
       name: new FormControl(""),
@@ -46,6 +52,8 @@ export class ProblemComponent implements OnInit, OnDestroy {
     this.progress = {};
 
     this.files = {};
+
+    this.isBackendOnline = false;
   }
 
   ngOnInit() {
@@ -63,13 +71,16 @@ export class ProblemComponent implements OnInit, OnDestroy {
           this.displayed["algorithms"] = [];
           this.selected["algorithm"] = "";
         }
+      }),
+      this.userManagementService.backendStatus.subscribe(isBackendOnline => {
+        this.isBackendOnline = isBackendOnline;
       })
     );
   }
 
-  addFile(type: string, file: File) {
+  addFile(type: string, files: File[]) {
     if (type !== "problem" && type != "algorithm") return;
-    this.files[type] = file;
+    this.files[type] = files;
   }
 
   uploadFile(type: string) {
@@ -83,6 +94,50 @@ export class ProblemComponent implements OnInit, OnDestroy {
       .subscribe((event: any) => {
         this.progress[type] = Math.round((100 * event.loaded) / event.total);
       });
+  }
+
+  addQueueItem() {
+    if (!this.isBackendOnline) return;
+    let queueItem: QueueItem = {
+      name: this.formGroup.value.name,
+      problem: this.selected["problem"],
+      algorithm: this.selected["algorithm"],
+      numberOfEvaluations: this.formGroup.value.numberOfEvaluations,
+      numberOfSeeds: this.formGroup.value.numberOfSeeds,
+      status: "waiting",
+      results: []
+    };
+    this.http
+      .post(`${environment.queues[this.user.id]}/addQueueItem`, {
+        name: queueItem.name,
+        problem: queueItem.problem,
+        algorithm: queueItem.algorithm,
+        numberOfEvaluations: queueItem.numberOfEvaluations,
+        numberOfSeeds: queueItem.numberOfSeeds
+      })
+      .pipe(
+        flatMap((response: { rabbitId?: string }) => {
+          queueItem.rabbitId = response.rabbitId;
+          this.user.queue.push(queueItem);
+          return this.userManagementService.updateUser(this.user);
+        })
+      )
+      .subscribe(
+        () => this.router.navigate(["/queue"]),
+        error => {
+          console.log(error);
+          // handle error
+        }
+      );
+    return false;
+  }
+
+  openTooltip(tooltip: NgbTooltip) {
+    if (!this.isBackendOnline) tooltip.open();
+  }
+
+  closeTooltip(tooltip: NgbTooltip) {
+    tooltip.close();
   }
 
   search(type: string, itemToSearch: string) {
@@ -117,22 +172,6 @@ export class ProblemComponent implements OnInit, OnDestroy {
       this.selected["algorithm"] = item;
     }
     return false;
-  }
-
-  addQueueItem() {
-    this.subscriptions.push(
-      this.userManagementService
-        .addQueueItem({
-          name: this.formGroup.value.name,
-          problem: this.selected["problem"],
-          algorithm: this.selected["algorithm"],
-          numberOfEvaluations: this.formGroup.value.numberOfEvaluations,
-          numberOfSeeds: this.formGroup.value.numberOfSeeds,
-          status: "waiting",
-          results: []
-        })
-        .subscribe(() => this.router.navigate(["/queue"]))
-    );
   }
 
   ngOnDestroy() {

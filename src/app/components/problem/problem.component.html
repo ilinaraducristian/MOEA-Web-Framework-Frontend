@@ -1,7 +1,12 @@
 <form [formGroup]="formGroup" class="container" *ngIf="user">
+  <div class="alert alert-danger row col-12" *ngIf="!isBackendOnline">
+    Service is temporarily unavailable. please try again later.
+  </div>
+
   <div class="form-group row align-items-center">
     <label for="name" class="col-12 col-sm-3 col-md-2 col-xl-2">Name</label>
     <input
+      formControlName="name"
       type="name"
       class="form-control col-sm-6 col-lg-3"
       id="name"
@@ -100,9 +105,17 @@
 
   <div class="form-group row align-items-center">
     <button
+      placement="right"
+      ngbTooltip="Service unavailable!"
+      triggers="manual"
+      #t="ngbTooltip"
+      [autoClose]="false"
+      (mouseenter)="openTooltip(t)"
+      (mouseleave)="closeTooltip(t)"
       style="margin-left: 1rem;"
       type="button"
       class="btn btn-primary col-10 col-sm-3 col-lg-2"
+      [ngClass]="{ disabled: !isBackendOnline }"
       (click)="addQueueItem()"
     >
       Add to queue
@@ -118,10 +131,11 @@
       Upload problem
     </label>
     <input
+      multiple
       class="col-12 col-sm-7 col-md-8"
       id="progress-problem"
       type="file"
-      (change)="addFile('problem', $event.target.files[0])"
+      (change)="addFile('problem', $event.target.files)"
     />
     <ngb-progressbar
       style="margin-top: 1rem;margin-bottom: 1rem;"

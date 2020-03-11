@@ -1,8 +1,10 @@
+import { HttpClient } from "@angular/common/http";
 import { Component, OnDestroy } from "@angular/core";
 import { NavigationEnd, Router } from "@angular/router";
 import { Subscription } from "rxjs";
 import { filter, map } from "rxjs/operators";
-import { UserType } from "src/environments/environment";
+import { environment, UserType } from "src/environments/environment";
+import { QueueItem } from "./entities/queue-item";
 import { User } from "./entities/user";
 import { UserManagementService } from "./services/user-management.service";
 
@@ -19,7 +21,8 @@ export class AppComponent implements OnDestroy {
 
   constructor(
     private readonly router: Router,
-    private readonly userManagementService: UserManagementService
+    private readonly userManagementService: UserManagementService,
+    private readonly http: HttpClient
   ) {
     this.activeRoute = "";
     this.user = null;
@@ -59,11 +62,37 @@ export class AppComponent implements OnDestroy {
     );
   }
 
+  removeQueueItem(queueItem: QueueItem) {
+    if (queueItem.status == "working") {
+      this.http
+        .get(
+          `${environment.queues[this.user.id]}/removeQueueItem/${
+            queueItem.rabbitId
+          }`
+        )
+        .subscribe();
+    }
+    let foundQueueItemIndex = this.user.queue.findIndex(
+      item => queueItem === item
+    );
+    if (foundQueueItemIndex == -1) throw new Error("QueueItem not found");
+
+    try {
+      this.userManagementService.removeRabbitSubscription(
+        this.user.queue[foundQueueItemIndex]
+      );
+    } catch {}
+    this.user.queue.splice(foundQueueItemIndex, 1);
+    this.userManagementService.updateUser(this.user);
+  }
+
   signout() {
-    this.userManagementService.signOut().subscribe(() => {
-      this.loggedIn = false;
-      this.router.navigate(["/"]);
+    this.user.queue.forEach(queueItem => {
+      try {
+        this.removeQueueItem(queueItem);
+      } catch {}
     });
+    this.userManagementService.deleteUser(this.user);
     return false;
   }
 

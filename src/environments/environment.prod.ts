@@ -1,8 +1,8 @@
-const backend = `https://moea-web-framework.herokuapp.com/`;
+const backend = `http://reydw.go.ro:8080`;
 export const environment = {
   production: true,
   backend: backend,
-  backendDomain: "https://moea-web-framework.herokuapp.com/",
+  backendDomain: "http://reydw.go.ro",
   queues: [
     `${backend}/queue`, // Guest queue
     `${backend}/user/queue` // User queue
@@ -12,9 +12,9 @@ export const environment = {
   problem: `${backend}/problem`,
   algorithm: `${backend}/algorithm`,
   rabbitMQ: {
-    brokerURL: "ws://custom-broker/ws",
+    brokerURL: "ws://reydw.go.ro:15674/ws",
     login: "root",
-    passcode: ""
+    passcode: "NKA@um0yZr0CIajNvYtseXRXWgX5NH%ngDljq4Y*TeOWvxx7#w"
   }
 };
 
