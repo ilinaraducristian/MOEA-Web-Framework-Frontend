@@ -17,13 +17,13 @@ import { indexedDBConfig } from "../configurations/indexedDBConfig";
 import { environment } from "../environments/environment";
 import { AppRoutingModule } from "./app-routing.module";
 import { AppComponent } from "./app.component";
+import { AuthorizationHttpInterceptor } from "./authorization-http-interceptor";
 import { HomeComponent } from "./components/home/home.component";
 import { LoginComponent } from "./components/login/login.component";
 import { ProblemComponent } from "./components/problem/problem.component";
 import { QueueComponent } from "./components/queue/queue.component";
 import { ResultsComponent } from "./components/results/results.component";
 import { SignupComponent } from "./components/signup/signup.component";
-import { CustomHttpInterceptor } from "./custom-http-interceptor";
 
 export function tokenGetter() {
   return localStorage.getItem("jwt");
@@ -69,7 +69,7 @@ export function tokenGetter() {
     },
     {
       provide: HTTP_INTERCEPTORS,
-      useClass: CustomHttpInterceptor,
+      useClass: AuthorizationHttpInterceptor,
       multi: true
     }
   ],

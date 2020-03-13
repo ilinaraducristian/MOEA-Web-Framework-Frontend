@@ -10,18 +10,22 @@ import { Observable } from "rxjs";
 import { environment } from "src/environments/environment";
 
 @Injectable()
-export class CustomHttpInterceptor implements HttpInterceptor {
-  static NO_AUTH_URLS = [
-    `${environment.backend}/queue/`,
-    `${environment.backend}/public`,
-    `${environment.backend}/user/login`,
-    `${environment.backend}/user/register`,
-    `${environment.backend}/public/getProblems`,
-    `${environment.backend}/public/getAlgorithms`,
-    `${environment.backend}/public/downloadProblem`,
-    `${environment.backend}/public/downloadAlgorithm`,
-    `${environment.backend}/public/getProblemsAndAlgorithm`
+export class AuthorizationHttpInterceptor implements HttpInterceptor {
+  static AUTH_URLS = [
+    `${environment.backend}/algorithm/\\w`,
+    `${environment.backend}/problem/\\w`,
+    `${environment.backend}/user/queue(/.+)?`
   ];
+
+  static REGEXP = (() => {
+    let temp = AuthorizationHttpInterceptor.AUTH_URLS.map(
+      (link, i) =>
+        `^${link}$${
+          i == AuthorizationHttpInterceptor.AUTH_URLS.length - 1 ? "" : "|"
+        }`
+    ).reduce((prev, current) => prev + current);
+    return new RegExp(temp);
+  })();
 
   constructor(private readonly _jwtHelperService: JwtHelperService) {}
 
@@ -29,13 +33,15 @@ export class CustomHttpInterceptor implements HttpInterceptor {
     request: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
-    if (request.url.match(new RegExp())) {
+    let urlNeedsAuth = AuthorizationHttpInterceptor.REGEXP.test(request.url);
+    if (urlNeedsAuth) {
       request = request.clone({
         setHeaders: {
           Authorization: `Bearer ${this._jwtHelperService.tokenGetter()}`
         }
       });
     }
+
     return next.handle(request);
   }
 }

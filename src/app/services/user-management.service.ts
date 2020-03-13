@@ -34,6 +34,7 @@ export class UserManagementService implements OnDestroy {
     private readonly _jwtHelperService: JwtHelperService
   ) {
     this._rabbitSubscriptions = [];
+    // this._rxStompService.deactivate();
     this._http.get(`${environment.public}`).subscribe(
       () => this._isBackendOnlineSubject.next(true),
       error => {}
@@ -70,9 +71,7 @@ export class UserManagementService implements OnDestroy {
         }
         this._userSubject.next(this._userOrGuest);
       })
-      .catch(error => {
-        // console.log(error);
-      });
+      .catch(error => {});
   }
 
   get user() {
@@ -283,7 +282,6 @@ export class UserManagementService implements OnDestroy {
   }
 
   updateUser(user: User) {
-    console.log("update user");
     return from(
       this._indexedDBService.update("users", user).then(() => {
         this._userSubject.next(Object.assign({}, user));
@@ -340,14 +338,11 @@ export class UserManagementService implements OnDestroy {
               queueItem.progress = Math.floor(
                 (message.currentSeed / queueItem.numberOfSeeds) * 100
               );
-              console.log(queueItem.progress);
             }
             return this._updateUserOrGuest();
           })
         )
-        .subscribe(null, error => {
-          console.log(error);
-        }),
+        .subscribe(null, error => {}),
       queueItem
     });
   }

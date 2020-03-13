@@ -1,23 +1,44 @@
-<div class="container">
-  <div class="alert alert-danger row col-sm-8" *ngIf="!queueItem">
-    No queue item selected
-  </div>
-  <div class="row" *ngIf="queueItem">
-    <div class="list-group col-sm-4">
-      <button
-        type="button"
-        class="list-group-item list-group-item-action"
-        style="padding: 0.2rem 1.25rem;"
-        *ngFor="let qualityIndicator of qualityIndicators"
-        [ngClass]="{ active: qualityIndicator.isActive }"
-        (click)="selectQualityIndicator(qualityIndicator)"
-      >
-        {{ qualityIndicator.name }}
-      </button>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-4">
+      <div class="row">
+        <table class="table table-bordered col-sm-12">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Problem</th>
+              <th>Algorithm</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let queueItem of queueItems"
+              [ngClass]="{ active: queueItem.selected }"
+              (click)="selectQueueItem(queueItem)"
+            >
+              <td>{{ queueItem.name }}</td>
+              <td>{{ queueItem.problem }}</td>
+              <td>{{ queueItem.algorithm }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row">
+        <div class="list-group col-sm-12" style="padding-right: 0;">
+          <button
+            type="button"
+            class="list-group-item list-group-item-action"
+            style="padding: 0.2rem 1.25rem;"
+            *ngFor="let qualityIndicator of qualityIndicators"
+            [ngClass]="{ active: qualityIndicator.selected }"
+            (click)="selectQualityIndicator(qualityIndicator)"
+          >
+            {{ qualityIndicator.name }}
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="col-sm-8">
-      <canvas #graph width="550" height="400"></canvas>
-    </div>
+    <canvas class="col-sm-7" id="chart"></canvas>
   </div>
 </div>

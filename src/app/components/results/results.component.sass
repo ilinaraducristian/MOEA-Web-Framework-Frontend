@@ -1,18 +1,23 @@
 .container-fluid
   margin-top: 1.5rem
-  margin-left: 1rem
 
 table
   font-size: .8rem
 
-tr
+table th, table td
+  padding-top: .2rem
+  padding-bottom: .2rem
+  padding-left: 0rem
+  padding-right: 0rem
+  vertical-align: middle
+  text-align: center
+
+table tr
   cursor: pointer
 
-tr.active
-  z-index: 2
-  color: #fff
+table tr.active
   background-color: #007bff
-  border-color: #007bff
+  color: #fff
 
 .quality-indicators
   // height: 50%

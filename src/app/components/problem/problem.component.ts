@@ -124,10 +124,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
       )
       .subscribe(
         () => this.router.navigate(["/queue"]),
-        error => {
-          console.log(error);
-          // handle error
-        }
+        error => {}
       );
     return false;
   }

@@ -117,12 +117,6 @@ export class QueueComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  showResults(queueItem: QueueItem) {
-    localStorage.setItem("queueItemRabbitId", queueItem.rabbitId);
-    this.router.navigate(["/results"]);
-    return false;
-  }
-
   ngOnDestroy() {
     this.subscriptions.forEach(subscription => subscription.unsubscribe());
   }
