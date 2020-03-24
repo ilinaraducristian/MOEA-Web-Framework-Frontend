@@ -1,3 +1,7 @@
+<div class="alert alert-danger row col-12" *ngIf="!serviceAvailable">
+  Service is temporarily unavailable. please try again later.
+</div>
+
 <h2>
   Queue
 </h2>
@@ -5,17 +9,16 @@
 <table class="table table-striped">
   <thead>
     <tr>
-      <th scope="col">#</th>
       <th scope="col">Name</th>
+      <th scope="col">Problem</th>
       <th scope="col">Algorithm</th>
       <th scope="col">Number of evaluations</th>
       <th scope="col">Number of seeds</th>
       <th scope="col">Status</th>
-      <th scope="col"></th>
-      <th scope="col"></th>
+      <th scope="col">Actions</th>
     </tr>
   </thead>
-  <tbody *ngIf="user">
+  <tbody *ngIf="user != null">
     <tr *ngFor="let queueItem of user.queue">
       <th scope="row">{{ queueItem.name }}</th>
       <td>{{ queueItem.problem }}</td>

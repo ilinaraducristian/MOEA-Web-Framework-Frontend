@@ -1,10 +1,9 @@
-import { HttpClient, HttpEventType } from "@angular/common/http";
+import { HttpClient } from "@angular/common/http";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
-import { NgbTooltip } from "@ng-bootstrap/ng-bootstrap";
 import { Subscription } from "rxjs";
-import { filter, flatMap } from "rxjs/operators";
+import { flatMap } from "rxjs/operators";
 import { QueueItem } from "src/app/entities/queue-item";
 import { User } from "src/app/entities/user";
 import { UserManagementService } from "src/app/services/user-management.service";
@@ -26,7 +25,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
   private files: {};
   private subscriptions: Subscription[];
 
-  public isBackendOnline: boolean;
+  serviceAvailable: boolean;
 
   constructor(
     private readonly userManagementService: UserManagementService,
@@ -41,26 +40,21 @@ export class ProblemComponent implements OnInit, OnDestroy {
 
     this.displayed = {};
     this.selected = {};
-
     this.displayed["problems"] = [];
     this.selected["problem"] = "";
-
     this.displayed["algorithms"] = [];
     this.selected["algorithm"] = "";
     this.subscriptions = [];
-
     this.progress = {};
-
     this.files = {};
-
-    this.isBackendOnline = false;
+    this.serviceAvailable = true;
   }
 
   ngOnInit() {
     this.subscriptions.push(
       this.userManagementService.user.subscribe(user => {
         this.user = user;
-        if (user) {
+        if (user != null) {
           this.displayed["problems"] = user.problems;
           this.selected["problem"] = user.problems[0];
           this.displayed["algorithms"] = user.algorithms;
@@ -71,9 +65,6 @@ export class ProblemComponent implements OnInit, OnDestroy {
           this.displayed["algorithms"] = [];
           this.selected["algorithm"] = "";
         }
-      }),
-      this.userManagementService.backendStatus.subscribe(isBackendOnline => {
-        this.isBackendOnline = isBackendOnline;
       })
     );
   }
@@ -82,22 +73,21 @@ export class ProblemComponent implements OnInit, OnDestroy {
     if (type !== "problem" && type != "algorithm") return;
     this.files[type] = files;
   }
-
-  uploadFile(type: string) {
-    if (type !== "problem" && type != "algorithm") return;
-    this.userManagementService
-      .uploadFile(type, this.files[type])
-      .pipe(
-        filter(event => event != null),
-        filter(event => event.type === HttpEventType.UploadProgress)
-      )
-      .subscribe((event: any) => {
-        this.progress[type] = Math.round((100 * event.loaded) / event.total);
-      });
-  }
+  uploadFile() {}
+  // uploadFile(type: string) {
+  //   if (type !== "problem" && type != "algorithm") return;
+  //   this.userManagementService
+  //     .uploadFile(type, this.files[type])
+  //     .pipe(
+  //       filter(event => event != null),
+  //       filter(event => event.type === HttpEventType.UploadProgress)
+  //     )
+  //     .subscribe((event: any) => {
+  //       this.progress[type] = Math.round((100 * event.loaded) / event.total);
+  //     });
+  // }
 
   addQueueItem() {
-    if (!this.isBackendOnline) return;
     let queueItem: QueueItem = {
       name: this.formGroup.value.name,
       problem: this.selected["problem"],
@@ -116,7 +106,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
         numberOfSeeds: queueItem.numberOfSeeds
       })
       .pipe(
-        flatMap((response: { rabbitId?: string }) => {
+        flatMap((response: { rabbitId: string }) => {
           queueItem.rabbitId = response.rabbitId;
           this.user.queue.push(queueItem);
           return this.userManagementService.updateUser(this.user);
@@ -124,17 +114,11 @@ export class ProblemComponent implements OnInit, OnDestroy {
       )
       .subscribe(
         () => this.router.navigate(["/queue"]),
-        error => {}
+        error => {
+          this.serviceAvailable = false;
+        }
       );
     return false;
-  }
-
-  openTooltip(tooltip: NgbTooltip) {
-    if (!this.isBackendOnline) tooltip.open();
-  }
-
-  closeTooltip(tooltip: NgbTooltip) {
-    tooltip.close();
   }
 
   search(type: string, itemToSearch: string) {

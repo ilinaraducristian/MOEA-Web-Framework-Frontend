@@ -13,8 +13,9 @@ import { environment, UserType } from "src/environments/environment";
   styleUrls: ["./login.component.sass"]
 })
 export class LoginComponent implements OnInit, OnDestroy {
-  public formGroup: FormGroup;
-  public badCredentials: boolean;
+  formGroup: FormGroup;
+  badCredentials: boolean;
+  serviceAvailable: boolean;
 
   constructor(
     private readonly userManagementService: UserManagementService,
@@ -29,6 +30,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       password: new FormControl("")
     });
     this.badCredentials = false;
+    this.serviceAvailable = true;
   }
 
   login() {
@@ -38,8 +40,9 @@ export class LoginComponent implements OnInit, OnDestroy {
         password: this.formGroup.value.password
       })
       .pipe(
-        flatMap(response =>
-          this.userManagementService.updateUser({
+        flatMap(response => {
+          localStorage.setItem("jwt", response["jwt"]);
+          return this.userManagementService.updateUser({
             id: UserType.User,
             username: response["username"],
             email: response["email"],
@@ -48,19 +51,19 @@ export class LoginComponent implements OnInit, OnDestroy {
             problems: response["problems"],
             algorithms: response["algorithms"],
             queue: response["queue"]
-          })
-        )
+          });
+        })
       )
       .subscribe(
         () => {
-          this.userManagementService.login();
+          this.userManagementService.loggedIn = true;
           this.router.navigate(["/"]);
         },
         response => {
           if (response.error.message == "Bad credentials provided") {
             this.badCredentials = true;
           } else {
-            // internal error
+            this.serviceAvailable = false;
           }
         }
       );

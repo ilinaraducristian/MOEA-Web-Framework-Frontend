@@ -19,8 +19,10 @@ export class QueueComponent implements OnInit, OnDestroy {
   faPlay = faPlay;
   faTimes = faTimes;
 
+  user: User;
+  serviceAvailable: boolean;
+
   private subscriptions: Subscription[];
-  public user: User;
   private rabbitSubscriptions: {
     subscription: Subscription;
     queueItem: QueueItem;
@@ -33,18 +35,14 @@ export class QueueComponent implements OnInit, OnDestroy {
   ) {
     this.subscriptions = [];
     this.rabbitSubscriptions = [];
+    this.serviceAvailable = true;
   }
 
   ngOnInit() {
     this.subscriptions.push(
       this.userManagementService.user.subscribe(user => {
         this.user = user;
-      }),
-      this.userManagementService.rabbitSubscriptions.subscribe(
-        rabbitSubscriptions => {
-          this.rabbitSubscriptions = rabbitSubscriptions;
-        }
-      )
+      })
     );
   }
 
@@ -64,9 +62,15 @@ export class QueueComponent implements OnInit, OnDestroy {
       )
       .subscribe(
         () => {
-          this.userManagementService.addRabbitSubscription(queueItem);
+          this.userManagementService.addRabbitSubscription(
+            this.user,
+            queueItem
+          );
+          this.serviceAvailable = true;
         },
-        error => {}
+        error => {
+          this.serviceAvailable = false;
+        }
       );
     return false;
   }
@@ -87,33 +91,52 @@ export class QueueComponent implements OnInit, OnDestroy {
           queueItem.solverId = undefined;
           queueItem.progress = undefined;
           queueItem.status = "waiting";
-          return this.userManagementService.updateUser(this.user);
+          return this.userManagementService.removeRabbitSubscription(
+            this.user,
+            queueItem
+          );
         })
+      )
+      .subscribe(
+        () => {
+          this.serviceAvailable = true;
+        },
+        () => {
+          this.serviceAvailable = false;
+        }
       );
   }
 
   removeQueueItem(queueItem: QueueItem) {
-    if (queueItem.status == "working") {
-      this.http
-        .get(
-          `${environment.queues[this.user.id]}/removeQueueItem/${
-            queueItem.rabbitId
-          }`
-        )
-        .subscribe();
-    }
-    let foundQueueItemIndex = this.user.queue.findIndex(
-      item => queueItem === item
-    );
-    if (foundQueueItemIndex == -1) throw new Error("QueueItem not found");
-
-    try {
-      this.userManagementService.removeRabbitSubscription(
-        this.user.queue[foundQueueItemIndex]
+    this.http
+      .get(
+        `${environment.queues[this.user.id]}/removeQueueItem/${
+          queueItem.rabbitId
+        }`
+      )
+      .pipe(
+        flatMap(response => {
+          let foundQueueItemIndex = this.user.queue.findIndex(
+            item => queueItem === item
+          );
+          if (foundQueueItemIndex == -1) return;
+          return this.userManagementService
+            .removeRabbitSubscription(this.user, queueItem)
+            .then(() => {
+              this.user.queue.splice(foundQueueItemIndex, 1);
+              return this.userManagementService.updateUser(this.user);
+            });
+        })
+      )
+      .subscribe(
+        () => {
+          this.serviceAvailable = true;
+        },
+        () => {
+          this.serviceAvailable = false;
+        }
       );
-    } catch {}
-    this.user.queue.splice(foundQueueItemIndex, 1);
-    this.userManagementService.updateUser(this.user);
+
     return false;
   }
 

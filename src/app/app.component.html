@@ -31,17 +31,18 @@
         </a>
       </li>
     </ul>
+    <div *ngIf="user != null">
+      <a routerLink="/login" id="login" *ngIf="!loggedIn">Log In</a>
+      <a routerLink="/signup" class="btn btn-outline-primary" *ngIf="!loggedIn">
+        Sign Up
+      </a>
 
-    <a routerLink="/login" id="login" *ngIf="!loggedIn">Log In</a>
-    <a routerLink="/signup" class="btn btn-outline-primary" *ngIf="!loggedIn">
-      Sign Up
-    </a>
-
-    <div class="d-inline-block" ngbDropdown *ngIf="loggedIn && user != null">
-      <a href="" ngbDropdownToggle (click)="(false)">{{ user.firstName }}</a>
-      <div ngbDropdownMenu class="dropdown-menu-right">
-        <button ngbDropdownItem>Profile</button>
-        <button ngbDropdownItem (click)="signout()">Sign out</button>
+      <div class="d-inline-block" ngbDropdown *ngIf="loggedIn">
+        <a href="" ngbDropdownToggle (click)="(false)">{{ user.firstName }}</a>
+        <div ngbDropdownMenu class="dropdown-menu-right">
+          <button ngbDropdownItem>Profile</button>
+          <button ngbDropdownItem (click)="signout()">Sign out</button>
+        </div>
       </div>
     </div>
   </div>

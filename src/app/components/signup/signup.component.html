@@ -1,5 +1,5 @@
 <div class="container">
-  <div class="alert alert-danger row col-12" *ngIf="!isBackendOnline">
+  <div class="alert alert-danger row col-12" *ngIf="!serviceAvailable">
     Service is temporarily unavailable. please try again later.
   </div>
   <form class="col-sm-8" [formGroup]="formGroup">

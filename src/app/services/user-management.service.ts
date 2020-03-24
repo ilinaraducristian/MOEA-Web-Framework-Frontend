@@ -3,8 +3,8 @@ import { Injectable, OnDestroy } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
 import { RxStompService } from "@stomp/ng2-stompjs";
 import { NgxIndexedDBService } from "ngx-indexed-db";
-import { BehaviorSubject, empty, from, Subscription, throwError } from "rxjs";
-import { catchError, flatMap, map, takeWhile, tap } from "rxjs/operators";
+import { BehaviorSubject, Subscription } from "rxjs";
+import { flatMap, map, takeWhile } from "rxjs/operators";
 import { environment, UserType } from "src/environments/environment";
 import { QueueItem } from "../entities/queue-item";
 import { RabbitResponse } from "../entities/rabbit-response";
@@ -16,16 +16,13 @@ import { User } from "../entities/user";
 export class UserManagementService implements OnDestroy {
   private _guest: User = null;
   private _user: User = null;
-  private _userOrGuest: User = null;
+  private _loggedIn: boolean = false;
 
-  private _userSubject = new BehaviorSubject<User>(null);
-  private _isBackendOnlineSubject = new BehaviorSubject<boolean>(false);
-  private rabbitSubscriptionsSubject = new BehaviorSubject<[]>([]);
-
+  private _user$: BehaviorSubject<User> = new BehaviorSubject(null);
   private _rabbitSubscriptions: {
-    subscription: Subscription;
     queueItem: QueueItem;
-  }[];
+    subscription: Subscription;
+  }[][];
 
   constructor(
     private readonly _indexedDBService: NgxIndexedDBService,
@@ -33,57 +30,53 @@ export class UserManagementService implements OnDestroy {
     private readonly _http: HttpClient,
     private readonly _jwtHelperService: JwtHelperService
   ) {
-    this._rabbitSubscriptions = [];
     // this._rxStompService.deactivate();
-    this._http.get(`${environment.public}`).subscribe(
-      () => this._isBackendOnlineSubject.next(true),
-      error => {}
-    );
-
-    // find guest
-    Promise.all([
-      this._indexedDBService
-        .getByID("users", UserType.Guest)
-        .then((guest: User | undefined) => {
-          let resolve;
-          if (guest == undefined) {
-            // guest not found, create guest
-            resolve = this._createGuest();
-          } else {
-            // guest found, update queue, listen for queueitem change
-            resolve = this._updateGuest(guest);
-          }
-          return resolve;
-        }),
-      this._indexedDBService
-        .getByID("users", UserType.User)
-        .then((user: User | undefined) => {
-          if (user != undefined) {
-            return this._updateUser(user);
-          }
-        })
-    ])
+    this._rabbitSubscriptions = [[], []];
+    // check if guest exists
+    this._indexedDBService
+      .getByID("users", UserType.Guest)
+      .then((guest: User | undefined) => {
+        if (guest == undefined) {
+          // if guest is not present then create
+          return this._createGuest();
+        } else {
+          // if guest is present check if items are still available
+          this._guest = guest;
+          return this._updateGuestQueue();
+        }
+      })
+      // check if user exists
+      .then(() => this._indexedDBService.getByID("users", UserType.User))
+      .then((user: User | undefined) => {
+        if (user != undefined) {
+          // if user is present
+          this._user = user;
+          return this._updateUserQueue();
+        }
+      })
       .then(() => {
         if (this._user != null) {
-          this._userOrGuest = this._user;
+          this._user$.next(this._user);
         } else {
-          this._userOrGuest = this._guest;
+          this._user$.next(this._guest);
         }
-        this._userSubject.next(this._userOrGuest);
       })
-      .catch(error => {});
+      .catch(error => {
+        console.log("UserManagementService: constructor");
+        console.log(error.message);
+      });
   }
 
   get user() {
-    return this._userSubject.asObservable();
+    return this._user$.asObservable();
   }
 
-  get backendStatus() {
-    return this._isBackendOnlineSubject.asObservable();
-  }
-
-  get rabbitSubscriptions() {
-    return this.rabbitSubscriptionsSubject.asObservable();
+  private _updateUser() {
+    if (this._loggedIn) {
+      this._user$.next(this._user);
+    } else {
+      this._user$.next(this._guest);
+    }
   }
 
   private _createGuest() {
@@ -210,140 +203,137 @@ export class UserManagementService implements OnDestroy {
     });
   }
 
-  private _updateGuest(guest: User) {
-    this._guest = guest;
-    if (guest.queue.length == 0) return;
-
+  private _updateGuestQueue() {
+    if (this._guest.queue.length == 0) return;
+    let body = this._guest.queue.map(queueItem => queueItem.rabbitId);
     return this._http
-      .post<QueueItem[]>(
-        `${environment.queues[UserType.Guest]}`,
-        guest.queue.map(queueItem => queueItem.rabbitId)
-      )
-      .pipe(
-        catchError(error => {
-          // if server is not responding => _isBackendOnlineSubject = false
-          return empty();
-        })
-      )
+      .post<QueueItem[]>(`${environment.queues[UserType.Guest]}`, body)
       .toPromise()
       .then(queue => {
-        guest.queue = queue;
-        guest.queue.map(queueItem => {
+        this._guest.queue = queue.map(queueItem => {
           queueItem.algorithm = queueItem.algorithm["name"];
           queueItem.problem = queueItem.problem["name"];
+          if (queueItem.status == "working") {
+            // add rabbit subscription to queueItem
+            this.addRabbitSubscription(this._guest, queueItem);
+          }
           return queueItem;
         });
-        guest.queue
-          .filter(queueItem => queueItem.status == "working")
-          .forEach(queueItem => {
-            this.addRabbitSubscription(queueItem);
-          });
-        this._guest = guest;
       });
   }
 
-  private _updateUser(user: User) {
+  private _updateUserQueue() {
     // if token expired return
     try {
       if (this._jwtHelperService.isTokenExpired()) {
         localStorage.removeItem("jwt");
+        this._user = null;
         return this._indexedDBService.delete("users", UserType.User);
       }
     } catch (error) {
+      this._user = null;
       return;
     }
-    this._user = user;
+
     return this._http
       .get<QueueItem[]>(`${environment.queues[UserType.User]}`)
-      .pipe(
-        catchError(error => {
-          // if server is not responding => _isBackendOnlineSubject = false
-          return throwError(error);
-        })
-      )
       .toPromise()
       .then(queue => {
-        if (queue.length == 0) return;
-        user.queue = queue;
-        user.queue.forEach(queueItem => {
-          if (queueItem.status == "working")
-            this.addRabbitSubscription(queueItem);
+        this._user.queue = queue;
+        this._user.queue.forEach(queueItem => {
+          if (queueItem.status == "working") {
+            // add rabbit subscription to queueItem
+            this.addRabbitSubscription(this._user, queueItem);
+          }
         });
-        this._user = user;
       });
   }
 
-  private _updateUserOrGuest() {
-    return from(
-      this._indexedDBService.update("users", this._userOrGuest).then(() => {
-        this._userSubject.next(this._userOrGuest);
-      })
-    );
-  }
-
   updateUser(user: User) {
-    return from(
-      this._indexedDBService.update("users", user).then(() => {
-        this._userSubject.next(Object.assign({}, user));
-      })
-    );
-  }
-
-  login() {
-    this._userOrGuest = this._user;
-  }
-
-  removeRabbitSubscription(queueItem: QueueItem) {
-    let foundSubscriptionIndex = this._rabbitSubscriptions.findIndex(
-      object => object.queueItem === queueItem
-    );
-    if (foundSubscriptionIndex == -1)
-      throw new Error("Rabbit subscription not found");
-    this.rabbitSubscriptions[foundSubscriptionIndex].subscription.unsubscribe();
-    this._rabbitSubscriptions.splice(foundSubscriptionIndex, 1);
-  }
-
-  deleteUser(user: User) {
-    return this._indexedDBService.delete("users", user).then(() => {
-      this._userOrGuest = this._guest;
-      this._updateUserOrGuest();
+    return this._indexedDBService.update("users", user).then(() => {
+      if (this.loggedIn) {
+        this._user = user;
+        this._user$.next(this._user);
+      } else {
+        this._guest = user;
+        this._user$.next(this._guest);
+      }
     });
   }
 
-  addRabbitSubscription(queueItem: QueueItem) {
-    let rabbitRoute;
-    if (this._userOrGuest.id == UserType.Guest) {
-      rabbitRoute = `guest.${queueItem.rabbitId}`;
+  set loggedIn(loggedIn: boolean) {
+    this._loggedIn = loggedIn;
+    if (loggedIn) {
+      this._user$.next(this._user);
     } else {
-      rabbitRoute = `user.${this._user.username}.${queueItem.rabbitId}`;
+      this._user$.next(this._guest);
+      if (this._user == null) return;
+      this._rabbitSubscriptions[UserType.User].forEach(({ subscription }) => {
+        subscription.unsubscribe();
+      });
+      this._indexedDBService
+        .delete("users", UserType.User)
+        .then(() => {
+          this._user = null;
+        })
+        .catch(error => {
+          console.log("UserManagementService: loggedIn");
+          console.log(error);
+        });
     }
-    this._rabbitSubscriptions.push({
-      subscription: this._rxStompService
-        .watch(rabbitRoute)
-        .pipe(
-          map(message => JSON.parse(message["body"]) as RabbitResponse),
-          takeWhile(message => message.status != "done", true),
-          flatMap(message => {
-            if (message.error) {
-              queueItem.status = "waiting";
-              queueItem.solverId = undefined;
-              queueItem.progress = undefined;
-              queueItem.results = [];
-            } else if (message.status == "done") {
-              queueItem.status = "done";
-              queueItem.solverId = undefined;
-              queueItem.progress = undefined;
-            } else {
-              queueItem.results.push(message);
-              queueItem.progress = Math.floor(
-                (message.currentSeed / queueItem.numberOfSeeds) * 100
-              );
-            }
-            return this._updateUserOrGuest();
-          })
-        )
-        .subscribe(null, error => {}),
-      queueItem
+  }
+
+  addRabbitSubscription(user: User, queueItem: QueueItem) {
+    let rabbitRoute;
+    if (user.id == UserType.User) {
+      rabbitRoute = `user.${this._user.username}.${queueItem.rabbitId}`;
+    } else {
+      rabbitRoute = `guest.${queueItem.rabbitId}`;
+    }
+    let subscription = this._rxStompService
+      .watch(rabbitRoute)
+      .pipe(
+        map(message => JSON.parse(message["body"]) as RabbitResponse),
+        takeWhile(message => message.status != "done", true),
+        flatMap(message => {
+          if (message.error) {
+            queueItem.status = "waiting";
+            queueItem.solverId = undefined;
+            queueItem.progress = undefined;
+            queueItem.results = [];
+          } else if (message.status == "done") {
+            queueItem.status = "done";
+            queueItem.solverId = undefined;
+            queueItem.progress = undefined;
+          } else {
+            queueItem.results.push(message);
+            queueItem.progress = Math.floor(
+              (message.currentSeed / queueItem.numberOfSeeds) * 100
+            );
+          }
+
+          return this._indexedDBService.update("users", user).then(() => {
+            this._updateUser();
+          });
+        })
+      )
+      .subscribe(null, error => {
+        console.log("UserManagementService: addRabbitSubscription");
+        console.log(error);
+      });
+
+    this._rabbitSubscriptions[user.id].push({ queueItem, subscription });
+  }
+
+  removeRabbitSubscription(user: User, qI: QueueItem) {
+    this._rabbitSubscriptions[user.id]
+      .filter(({ queueItem }) => queueItem === qI)
+      .forEach(({ subscription }) => subscription.unsubscribe());
+    this._rabbitSubscriptions[user.id] = this._rabbitSubscriptions[
+      user.id
+    ].filter(({ queueItem }) => queueItem !== qI);
+    return this._indexedDBService.update("users", user).then(() => {
+      this._updateUser();
     });
   }
 
@@ -352,31 +342,35 @@ export class UserManagementService implements OnDestroy {
    * @param type Must be "problem" or "algorithm"
    * @param file The file that will be uploaded
    */
-  uploadFile(type: string, files: File[]) {
-    if (type !== "problem" && type != "algorithm") return;
-    let formData = new FormData();
-    if (type == "problem") {
-      formData.append("problem", files[0], files[0].name);
-      formData.append("reference", files[1], files[1].name);
-    } else {
-      formData.append("algorithm", files[0], files[0].name);
-    }
-    return this._http
-      .put(`${environment.backend}/${type}/upload`, formData, {
-        reportProgress: true,
-        observe: "events"
-      })
-      .pipe(
-        tap(null, null, () => {
-          this._user[`${type}s`].push(files[0].name.replace(".class", ""));
-          this._updateUserOrGuest();
-        })
-      );
-  }
+  // uploadFile(type: string, files: File[]) {
+  //   if (type !== "problem" && type != "algorithm") return;
+  //   let formData = new FormData();
+  //   if (type == "problem") {
+  //     formData.append("problem", files[0], files[0].name);
+  //     formData.append("reference", files[1], files[1].name);
+  //   } else {
+  //     formData.append("algorithm", files[0], files[0].name);
+  //   }
+  //   return this._http
+  //     .put(`${environment.backend}/${type}/upload`, formData, {
+  //       reportProgress: true,
+  //       observe: "events"
+  //     })
+  //     .pipe(
+  //       tap(null, null, () => {
+  //         this._user[`${type}s`].push(files[0].name.replace(".class", ""));
+  //         this._updateUserOrGuest();
+  //       })
+  //     );
+  // }
 
   ngOnDestroy() {
-    this._rabbitSubscriptions.forEach(rabbitSubscription =>
-      rabbitSubscription.subscription.unsubscribe()
-    );
+    this._rabbitSubscriptions[UserType.Guest].forEach(({ subscription }) => {
+      subscription.unsubscribe();
+    });
+    if (this._user != null)
+      this._rabbitSubscriptions[UserType.User].forEach(({ subscription }) =>
+        subscription.unsubscribe()
+      );
   }
 }

@@ -1,4 +1,7 @@
 <div class="container">
+  <div class="alert alert-danger row col-12" *ngIf="!serviceAvailable">
+    Service is temporarily unavailable. please try again later.
+  </div>
   <div class="row justify-content-center">
     <form class="col-sm-4" [formGroup]="formGroup">
       <div class="row">
