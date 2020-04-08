@@ -11,7 +11,7 @@ import { RabbitResponse } from "../entities/rabbit-response";
 import { User } from "../entities/user";
 
 @Injectable({
-  providedIn: "root"
+  providedIn: "root",
 })
 export class UserManagementService implements OnDestroy {
   private _guest: User = null;
@@ -19,6 +19,7 @@ export class UserManagementService implements OnDestroy {
   private _loggedIn: boolean = false;
 
   private _user$: BehaviorSubject<User> = new BehaviorSubject(null);
+  private _guest$: BehaviorSubject<User> = new BehaviorSubject(null);
   private _rabbitSubscriptions: {
     queueItem: QueueItem;
     subscription: Subscription;
@@ -61,14 +62,23 @@ export class UserManagementService implements OnDestroy {
           this._user$.next(this._guest);
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.log("UserManagementService: constructor");
         console.log(error.message);
+        if (this._user != null) {
+          this._user$.next(this._user);
+        } else {
+          this._user$.next(this._guest);
+        }
       });
   }
 
   get user() {
     return this._user$.asObservable();
+  }
+
+  get guest() {
+    return this._guest$.asObservable();
   }
 
   private _updateUser() {
@@ -173,7 +183,7 @@ export class UserManagementService implements OnDestroy {
         "Viennet",
         "Viennet2",
         "Viennet3",
-        "Viennet4"
+        "Viennet4",
       ],
       algorithms: [
         "CMA-ES",
@@ -194,9 +204,9 @@ export class UserManagementService implements OnDestroy {
         "VEGA",
         "DBEA",
         "RVEA",
-        "RSO"
+        "RSO",
       ],
-      queue: []
+      queue: [],
     };
     return this._indexedDBService.add("users", guest).then(() => {
       this._guest = guest;
@@ -205,12 +215,12 @@ export class UserManagementService implements OnDestroy {
 
   private _updateGuestQueue() {
     if (this._guest.queue.length == 0) return;
-    let body = this._guest.queue.map(queueItem => queueItem.rabbitId);
+    let body = this._guest.queue.map((queueItem) => queueItem.rabbitId);
     return this._http
       .post<QueueItem[]>(`${environment.queues[UserType.Guest]}`, body)
       .toPromise()
-      .then(queue => {
-        this._guest.queue = queue.map(queueItem => {
+      .then((queue) => {
+        this._guest.queue = queue.map((queueItem) => {
           queueItem.algorithm = queueItem.algorithm["name"];
           queueItem.problem = queueItem.problem["name"];
           if (queueItem.status == "working") {
@@ -219,6 +229,7 @@ export class UserManagementService implements OnDestroy {
           }
           return queueItem;
         });
+        return this._indexedDBService.update("users", this._guest);
       });
   }
 
@@ -238,9 +249,9 @@ export class UserManagementService implements OnDestroy {
     return this._http
       .get<QueueItem[]>(`${environment.queues[UserType.User]}`)
       .toPromise()
-      .then(queue => {
+      .then((queue) => {
         this._user.queue = queue;
-        this._user.queue.forEach(queueItem => {
+        this._user.queue.forEach((queueItem) => {
           if (queueItem.status == "working") {
             // add rabbit subscription to queueItem
             this.addRabbitSubscription(this._user, queueItem);
@@ -276,7 +287,7 @@ export class UserManagementService implements OnDestroy {
         .then(() => {
           this._user = null;
         })
-        .catch(error => {
+        .catch((error) => {
           console.log("UserManagementService: loggedIn");
           console.log(error);
         });
@@ -293,9 +304,9 @@ export class UserManagementService implements OnDestroy {
     let subscription = this._rxStompService
       .watch(rabbitRoute)
       .pipe(
-        map(message => JSON.parse(message["body"]) as RabbitResponse),
-        takeWhile(message => message.status != "done", true),
-        flatMap(message => {
+        map((message) => JSON.parse(message["body"]) as RabbitResponse),
+        takeWhile((message) => message.status != "done", true),
+        flatMap((message) => {
           if (message.error) {
             queueItem.status = "waiting";
             queueItem.solverId = undefined;
@@ -317,7 +328,7 @@ export class UserManagementService implements OnDestroy {
           });
         })
       )
-      .subscribe(null, error => {
+      .subscribe(null, (error) => {
         console.log("UserManagementService: addRabbitSubscription");
         console.log(error);
       });
