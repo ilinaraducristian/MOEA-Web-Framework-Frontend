@@ -10,7 +10,7 @@ import { UserManagementService } from "./services/user-management.service";
 @Component({
   selector: "app-root",
   templateUrl: "./app.component.html",
-  styleUrls: ["./app.component.sass"]
+  styleUrls: ["./app.component.sass"],
 })
 export class AppComponent implements OnDestroy {
   public activeRoute: String;
@@ -32,8 +32,8 @@ export class AppComponent implements OnDestroy {
     this.subscriptions.push(
       this.router.events
         .pipe(
-          filter(event => event instanceof NavigationEnd),
-          map(navigation => {
+          filter((event) => event instanceof NavigationEnd),
+          map((navigation) => {
             let url: string = navigation["url"];
             let lastSlash = url.indexOf("/", 1);
             if (lastSlash == -1) {
@@ -44,12 +44,12 @@ export class AppComponent implements OnDestroy {
             return url;
           })
         )
-        .subscribe(url => {
+        .subscribe((url) => {
           this.activeRoute = url;
         })
     );
     this.subscriptions.push(
-      this.userManagementService.user.subscribe(user => {
+      this.userManagementService.user.subscribe((user) => {
         this.user = user;
         if (user == null) return;
         if (user.id == UserType.User) {
@@ -63,10 +63,11 @@ export class AppComponent implements OnDestroy {
 
   signout() {
     this.userManagementService.loggedIn = false;
+    this.router.navigateByUrl("");
     return false;
   }
 
   ngOnDestroy() {
-    this.subscriptions.forEach(subscription => subscription.unsubscribe());
+    this.subscriptions.forEach((subscription) => subscription.unsubscribe());
   }
 }

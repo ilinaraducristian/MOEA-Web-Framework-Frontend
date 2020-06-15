@@ -4,7 +4,7 @@ import { JwtHelperService } from "@auth0/angular-jwt";
 import { RxStompService } from "@stomp/ng2-stompjs";
 import { NgxIndexedDBService } from "ngx-indexed-db";
 import { BehaviorSubject, Subscription } from "rxjs";
-import { flatMap, map, takeWhile } from "rxjs/operators";
+import { flatMap, map, takeWhile, tap } from "rxjs/operators";
 import { environment, UserType } from "src/environments/environment";
 import { QueueItem } from "../entities/queue-item";
 import { RabbitResponse } from "../entities/rabbit-response";
@@ -262,11 +262,14 @@ export class UserManagementService implements OnDestroy {
 
   updateUser(user: User) {
     return this._indexedDBService.update("users", user).then(() => {
-      if (this.loggedIn) {
+      if (user.id == UserType.User) {
         this._user = user;
+      } else if (user.id == UserType.Guest) {
+        this._guest = user;
+      }
+      if (this._loggedIn) {
         this._user$.next(this._user);
       } else {
-        this._guest = user;
         this._user$.next(this._guest);
       }
     });
@@ -353,27 +356,30 @@ export class UserManagementService implements OnDestroy {
    * @param type Must be "problem" or "algorithm"
    * @param file The file that will be uploaded
    */
-  // uploadFile(type: string, files: File[]) {
-  //   if (type !== "problem" && type != "algorithm") return;
-  //   let formData = new FormData();
-  //   if (type == "problem") {
-  //     formData.append("problem", files[0], files[0].name);
-  //     formData.append("reference", files[1], files[1].name);
-  //   } else {
-  //     formData.append("algorithm", files[0], files[0].name);
-  //   }
-  //   return this._http
-  //     .put(`${environment.backend}/${type}/upload`, formData, {
-  //       reportProgress: true,
-  //       observe: "events"
-  //     })
-  //     .pipe(
-  //       tap(null, null, () => {
-  //         this._user[`${type}s`].push(files[0].name.replace(".class", ""));
-  //         this._updateUserOrGuest();
-  //       })
-  //     );
-  // }
+  uploadFile(type: string, files: File[]) {
+    console.log(files);
+    if (type !== "problem" && type != "algorithm") return;
+    let formData = new FormData();
+    formData.append("override", "true");
+    formData.append("name", files[0].name);
+    if (type == "problem") {
+      formData.append("problem", files[0], files[0].name);
+      formData.append("reference", files[1], files[1].name);
+    } else {
+      formData.append("algorithm", files[0], files[0].name);
+    }
+    return this._http
+      .put(`${environment.backend}/${type}/upload`, formData, {
+        reportProgress: true,
+        observe: "events",
+      })
+      .pipe(
+        tap(null, null, () => {
+          this._user[`${type}s`].push(files[0].name.replace(".class", ""));
+          this.updateUser(this._user);
+        })
+      );
+  }
 
   ngOnDestroy() {
     this._rabbitSubscriptions[UserType.Guest].forEach(({ subscription }) => {

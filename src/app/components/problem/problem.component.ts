@@ -1,9 +1,9 @@
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpEventType } from "@angular/common/http";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
 import { Subscription } from "rxjs";
-import { flatMap } from "rxjs/operators";
+import { filter, flatMap } from "rxjs/operators";
 import { QueueItem } from "src/app/entities/queue-item";
 import { User } from "src/app/entities/user";
 import { UserManagementService } from "src/app/services/user-management.service";
@@ -13,7 +13,7 @@ import { compareTwoStrings } from "string-similarity";
 @Component({
   selector: "app-problem",
   templateUrl: "./problem.component.html",
-  styleUrls: ["./problem.component.sass"]
+  styleUrls: ["./problem.component.sass"],
 })
 export class ProblemComponent implements OnInit, OnDestroy {
   public user: User;
@@ -22,7 +22,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
   public selected: { problem?: string; algorithm?: string };
   public progress: { problem?: number; algorithm?: number };
 
-  private files: {};
+  private files: { problem: File[]; algorithm: File[] };
   private subscriptions: Subscription[];
 
   serviceAvailable: boolean;
@@ -35,7 +35,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
     this.formGroup = new FormGroup({
       name: new FormControl(""),
       numberOfEvaluations: new FormControl(10000),
-      numberOfSeeds: new FormControl(10)
+      numberOfSeeds: new FormControl(10),
     });
 
     this.displayed = {};
@@ -46,13 +46,13 @@ export class ProblemComponent implements OnInit, OnDestroy {
     this.selected["algorithm"] = "";
     this.subscriptions = [];
     this.progress = {};
-    this.files = {};
+    this.files = { problem: [], algorithm: [] };
     this.serviceAvailable = true;
   }
 
   ngOnInit() {
     this.subscriptions.push(
-      this.userManagementService.user.subscribe(user => {
+      this.userManagementService.user.subscribe((user) => {
         this.user = user;
         if (user != null) {
           this.displayed["problems"] = user.problems;
@@ -71,21 +71,25 @@ export class ProblemComponent implements OnInit, OnDestroy {
 
   addFile(type: string, files: File[]) {
     if (type !== "problem" && type != "algorithm") return;
-    this.files[type] = files;
+    if (type === "problem") {
+      this.files[type] = files;
+    } else if (type === "algorithm") {
+      this.files[type][0] = (files as unknown) as File;
+    }
   }
-  uploadFile() {}
-  // uploadFile(type: string) {
-  //   if (type !== "problem" && type != "algorithm") return;
-  //   this.userManagementService
-  //     .uploadFile(type, this.files[type])
-  //     .pipe(
-  //       filter(event => event != null),
-  //       filter(event => event.type === HttpEventType.UploadProgress)
-  //     )
-  //     .subscribe((event: any) => {
-  //       this.progress[type] = Math.round((100 * event.loaded) / event.total);
-  //     });
-  // }
+
+  uploadFile(type: string) {
+    if (type !== "problem" && type != "algorithm") return;
+    this.userManagementService
+      .uploadFile(type, this.files[type])
+      .pipe(
+        filter((event) => event != null),
+        filter((event) => event["type"] === HttpEventType.UploadProgress)
+      )
+      .subscribe((event: any) => {
+        this.progress[type] = Math.round((100 * event.loaded) / event.total);
+      });
+  }
 
   addQueueItem() {
     let queueItem: QueueItem = {
@@ -95,7 +99,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
       numberOfEvaluations: this.formGroup.value.numberOfEvaluations,
       numberOfSeeds: this.formGroup.value.numberOfSeeds,
       status: "waiting",
-      results: []
+      results: [],
     };
     this.http
       .post(`${environment.queues[this.user.id]}/addQueueItem`, {
@@ -103,7 +107,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
         problem: queueItem.problem,
         algorithm: queueItem.algorithm,
         numberOfEvaluations: queueItem.numberOfEvaluations,
-        numberOfSeeds: queueItem.numberOfSeeds
+        numberOfSeeds: queueItem.numberOfSeeds,
       })
       .pipe(
         flatMap((response: { rabbitId: string }) => {
@@ -114,7 +118,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
       )
       .subscribe(
         () => this.router.navigate(["/queue"]),
-        error => {
+        (error) => {
           this.serviceAvailable = false;
         }
       );
@@ -127,9 +131,9 @@ export class ProblemComponent implements OnInit, OnDestroy {
         this.displayed["problems"] = this.user.problems;
       } else {
         this.displayed["problems"] = this.user.problems
-          .map(item => [compareTwoStrings(item, itemToSearch), item])
+          .map((item) => [compareTwoStrings(item, itemToSearch), item])
           .sort((a, b) => b[0] - a[0])
-          .map(item => item[1])
+          .map((item) => item[1])
           .slice(0, 10);
       }
     } else if (type == "algorithm") {
@@ -137,9 +141,9 @@ export class ProblemComponent implements OnInit, OnDestroy {
         this.displayed["algorithms"] = this.user.algorithms;
       } else {
         this.displayed["algorithms"] = this.user.algorithms
-          .map(item => [compareTwoStrings(item, itemToSearch), item])
+          .map((item) => [compareTwoStrings(item, itemToSearch), item])
           .sort((a, b) => b[0] - a[0])
-          .map(item => item[1])
+          .map((item) => item[1])
           .slice(0, 10);
       }
     }
@@ -156,6 +160,6 @@ export class ProblemComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.subscriptions.forEach(subscription => subscription.unsubscribe());
+    this.subscriptions.forEach((subscription) => subscription.unsubscribe());
   }
 }
