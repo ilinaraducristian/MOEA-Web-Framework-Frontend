@@ -11,7 +11,12 @@
   <div class="navbar-collapse">
     <ul class="navbar-nav mr-auto">
       <li class="nav-item active">
-        <a class="nav-link" routerLink="/" routerLinkActive="active">
+        <a
+          class="nav-link"
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
           Home
         </a>
       </li>
@@ -32,16 +37,18 @@
       </li>
     </ul>
     <div *ngIf="user != null">
-      <a routerLink="/login" id="login" *ngIf="!loggedIn">Log In</a>
-      <a routerLink="/signup" class="btn btn-outline-primary" *ngIf="!loggedIn">
-        Sign Up
-      </a>
+      <div *ngIf="user.id == UserType.Guest">
+        <a routerLink="/login" id="login">Log In</a>
+        <a routerLink="/signup" class="btn btn-outline-primary">
+          Sign Up
+        </a>
+      </div>
 
-      <div class="d-inline-block" ngbDropdown *ngIf="loggedIn">
+      <div class="d-inline-block" ngbDropdown *ngIf="user.id == UserType.User">
         <a href="" ngbDropdownToggle (click)="(false)">{{ user.firstName }}</a>
         <div ngbDropdownMenu class="dropdown-menu-right">
           <button ngbDropdownItem>Profile</button>
-          <button ngbDropdownItem (click)="signout()">Sign out</button>
+          <button ngbDropdownItem (click)="logout()">Sign out</button>
         </div>
       </div>
     </div>

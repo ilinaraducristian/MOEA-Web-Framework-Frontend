@@ -34,6 +34,7 @@
     "bootstrap": "^4.4.1",
     "chart.js": "^2.9.3",
     "chartist": "^0.11.4",
+    "js-coroutines": "^2.2.60",
     "ngx-indexed-db": "^4.0.3",
     "rxjs": "~6.4.0",
     "string-similarity": "^4.0.1",

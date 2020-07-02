@@ -10,5 +10,4 @@ export interface QueueItem {
   results: QualityIndicators[];
   progress?: number;
   rabbitId?: string;
-  solverId?: string;
 }

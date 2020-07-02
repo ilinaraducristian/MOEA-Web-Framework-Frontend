@@ -3,11 +3,10 @@ import { Component, OnDestroy, OnInit } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { Router } from "@angular/router";
 import { Subscription } from "rxjs";
-import { filter, flatMap } from "rxjs/operators";
+import { filter } from "rxjs/operators";
 import { QueueItem } from "src/app/entities/queue-item";
 import { User } from "src/app/entities/user";
 import { UserManagementService } from "src/app/services/user-management.service";
-import { environment } from "src/environments/environment";
 import { compareTwoStrings } from "string-similarity";
 
 @Component({
@@ -51,6 +50,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // construieste form ul si lista problem lista algoritmi
     this.subscriptions.push(
       this.userManagementService.user.subscribe((user) => {
         this.user = user;
@@ -79,12 +79,18 @@ export class ProblemComponent implements OnInit, OnDestroy {
   }
 
   uploadFile(type: string) {
+    // aici arata bine, de revizuit
     if (type !== "problem" && type != "algorithm") return;
     this.userManagementService
       .uploadFile(type, this.files[type])
       .pipe(
-        filter((event) => event != null),
-        filter((event) => event["type"] === HttpEventType.UploadProgress)
+        filter((event) => {
+          if (event != null) {
+            if (event["type"] === HttpEventType.UploadProgress) return true;
+            return false;
+          }
+          return false;
+        })
       )
       .subscribe((event: any) => {
         this.progress[type] = Math.round((100 * event.loaded) / event.total);
@@ -101,27 +107,15 @@ export class ProblemComponent implements OnInit, OnDestroy {
       status: "waiting",
       results: [],
     };
-    this.http
-      .post(`${environment.queues[this.user.id]}/addQueueItem`, {
-        name: queueItem.name,
-        problem: queueItem.problem,
-        algorithm: queueItem.algorithm,
-        numberOfEvaluations: queueItem.numberOfEvaluations,
-        numberOfSeeds: queueItem.numberOfSeeds,
+    this.userManagementService
+      .addQueueItem(queueItem)
+      .then(() => {
+        console.log("ok");
+        this.router.navigate(["/queue"]);
       })
-      .pipe(
-        flatMap((response: { rabbitId: string }) => {
-          queueItem.rabbitId = response.rabbitId;
-          this.user.queue.push(queueItem);
-          return this.userManagementService.updateUser(this.user);
-        })
-      )
-      .subscribe(
-        () => this.router.navigate(["/queue"]),
-        (error) => {
-          this.serviceAvailable = false;
-        }
-      );
+      .catch((error) => {
+        console.log(error);
+      });
     return false;
   }
 

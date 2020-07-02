@@ -2,7 +2,7 @@ import {
   HttpEvent,
   HttpHandler,
   HttpInterceptor,
-  HttpRequest
+  HttpRequest,
 } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
@@ -14,7 +14,7 @@ export class AuthorizationHttpInterceptor implements HttpInterceptor {
   static AUTH_URLS = [
     `${environment.backend}/algorithm/\\w`,
     `${environment.backend}/problem/\\w`,
-    `${environment.backend}/user/queue(/.+)?`
+    `${environment.backend}/user/queue(/.+)?`,
   ];
 
   static REGEXP = (() => {
@@ -27,7 +27,7 @@ export class AuthorizationHttpInterceptor implements HttpInterceptor {
     return new RegExp(temp);
   })();
 
-  constructor(private readonly _jwtHelperService: JwtHelperService) {}
+  constructor(private readonly jwtHelperService: JwtHelperService) {}
 
   intercept(
     request: HttpRequest<any>,
@@ -37,8 +37,8 @@ export class AuthorizationHttpInterceptor implements HttpInterceptor {
     if (urlNeedsAuth) {
       request = request.clone({
         setHeaders: {
-          Authorization: `Bearer ${this._jwtHelperService.tokenGetter()}`
-        }
+          Authorization: `Bearer ${this.jwtHelperService.tokenGetter()}`,
+        },
       });
     }
 
