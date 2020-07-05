@@ -28,10 +28,9 @@
               "src/assets",
               "src/manifest.webmanifest"
             ],
-            "styles": [
-              "src/styles.sass"
-            ],
-            "scripts": []
+            "styles": ["src/styles.sass"],
+            "scripts": [],
+            "allowedCommonJsDependencies": ["@stomp/rx-stomp", "chart.js"]
           },
           "configurations": {
             "production": {
@@ -96,9 +95,7 @@
               "src/assets",
               "src/manifest.webmanifest"
             ],
-            "styles": [
-              "src/styles.sass"
-            ],
+            "styles": ["src/styles.sass"],
             "scripts": []
           }
         },
@@ -110,9 +107,7 @@
               "tsconfig.spec.json",
               "e2e/tsconfig.json"
             ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
+            "exclude": ["**/node_modules/**"]
           }
         },
         "e2e": {
@@ -128,6 +123,7 @@
           }
         }
       }
-    }},
+    }
+  },
   "defaultProject": "MOEA-Web-Framework-Frontend"
 }
