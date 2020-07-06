@@ -29,11 +29,11 @@
             type="button"
             class="list-group-item list-group-item-action"
             style="padding: 0.2rem 1.25rem;"
-            *ngFor="let qualityIndicator of qualityIndicators"
-            [ngClass]="{ active: qualityIndicator.selected }"
-            (click)="selectQualityIndicator(qualityIndicator)"
+            *ngFor="let qualityIndicator of qualityIndicators | keyvalue"
+            [ngClass]="{ active: qualityIndicator.value.selected }"
+            (click)="selectQualityIndicator(qualityIndicator.value)"
           >
-            {{ qualityIndicator.name }}
+            {{ qualityIndicator.value.name }}
           </button>
         </div>
       </div>

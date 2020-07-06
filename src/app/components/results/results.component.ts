@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import * as Chart from "chart.js";
 import { Subscription } from "rxjs";
+import { QualityIndicators } from "src/app/entities/quality-indicators";
 import { QueueItem } from "src/app/entities/queue-item";
 import { UserManagementService } from "src/app/services/user-management.service";
 
@@ -11,77 +12,69 @@ import { UserManagementService } from "src/app/services/user-management.service"
 })
 export class ResultsComponent implements OnInit, OnDestroy {
   private chart: Chart;
-  private chartDatasets: any[];
+  private chartOptions: Chart.ChartOptions;
+  private datasetOptions: Chart.ChartDataSets;
+  private chartDatasets: Chart.ChartDataSets[];
+  private chartLabels: number[];
 
   private colors: Colors;
-  private chartLabels: any[];
-  private chartOptions;
-  private datasetOptions;
   private userSubscription: Subscription;
-
   private initialized = false;
 
-  public qualityIndicators: GraphQualityIndicator[];
+  public qualityIndicators: GraphQualityIndicator;
   public queueItems: GraphQueueItem[];
 
   constructor(private readonly userManagementService: UserManagementService) {
-    this.qualityIndicators = [
-      {
+    this.qualityIndicators = {
+      hypervolume: {
         name: "Hypervolume",
-        id: "hypervolume",
         selected: false,
       },
-      {
+      generationalDistance: {
         name: "Generational Distance",
-        id: "generationalDistance",
         selected: false,
       },
-      {
+      invertedGenerationalDistance: {
         name: "Inverted Generational Distance",
-        id: "invertedGenerationalDistance",
         selected: false,
       },
-      { name: "Spacing", id: "spacing", selected: false },
-      {
+      spacing: {
+        name: "Spacing",
+        selected: false,
+      },
+      additiveEpsilonIndicator: {
         name: "Additive Epsilon Indicator",
-        id: "additiveEpsilonIndicator",
         selected: false,
       },
-      {
+      contribution: {
         name: "Contribution",
-        id: "contribution",
         selected: false,
       },
-      {
+      r1Indicator: {
         name: "R1 Indicator",
-        id: "r1Indicator",
         selected: false,
       },
-      {
+      r2Indicator: {
         name: "R2 Indicator",
-        id: "r2Indicator",
         selected: false,
       },
-      {
+      r3Indicator: {
         name: "R3 Indicator",
-        id: "r3Indicator",
         selected: false,
       },
-      {
+      elapsedTime: {
         name: "Elapsed Time",
-        id: "elapsedTime",
         selected: false,
       },
-      {
+      nfe: {
         name: "Number of evaluations",
-        id: "nfe",
         selected: false,
       },
-    ];
+    };
     this.chartOptions = {
       elements: {
         line: {
-          //tension: 0, // disables bezier curves
+          tension: 0,
         },
       },
       animation: {
@@ -105,7 +98,6 @@ export class ResultsComponent implements OnInit, OnDestroy {
         },
         xAxes: [
           {
-            // type: "linear",
             scaleLabel: {
               display: true,
               labelString: "Number of evaluations",
@@ -134,8 +126,8 @@ export class ResultsComponent implements OnInit, OnDestroy {
       pointRadius: 0,
       pointHitRadius: 5,
     };
-    this.chartLabels = [0];
     this.chartDatasets = [];
+    this.chartLabels = [0];
     this.queueItems = [];
     this.colors = new Colors();
   }
@@ -156,7 +148,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
           return;
         }
 
-        if (this.queueItems.length == 0) {
+        if (!this.initialized) {
           user.queue.forEach((value) => {
             const queueItem = Object.assign(value, {
               selected: false,
@@ -164,43 +156,19 @@ export class ResultsComponent implements OnInit, OnDestroy {
             });
             this.queueItems.push(queueItem);
             this.colors.next;
-            this.updateLabels(value.numberOfEvaluations / 100);
-            this.updateChart();
           });
           this.initialized = true;
-        } else {
-          this.chartDatasets = [];
-          for (const queueItem of this.queueItems) {
-            const qualityIndicatorSelected =
-              this.qualityIndicators.filter(
-                (qualityIndicator) => qualityIndicator.selected
-              ).length > 0;
-            if (!(queueItem.selected && qualityIndicatorSelected)) continue;
-            const legendDataset = {
-              label: queueItem.name,
-              borderColor: queueItem.color,
-              backgroundColor: queueItem.color,
-            };
-            this.chartDatasets.push(legendDataset);
-            if (queueItem.results[0] != undefined) {
-              this.updateLabels(queueItem.results[0].nfe);
-              queueItem.results.forEach((result) => {
-                this.addNewResult(result, queueItem);
-              });
-            }
-          }
-
-          this.updateChart();
         }
+        this.updateChart();
       }
     );
   }
 
   /**
-   * Update x labels based on the new nfe.
+   * Update x axis labels based on the new nfe.
    * @param nfe Number of evaluations
    */
-  updateLabels(nfe) {
+  updateLabels(nfe: number) {
     if (nfe >= this.chartLabels.length) {
       const size = nfe - this.chartLabels.length + 1;
       const labels = new Array(size)
@@ -210,18 +178,19 @@ export class ResultsComponent implements OnInit, OnDestroy {
     }
   }
 
-  addNewResult(result, queueItem) {
+  /**
+   * Creates a new chart dataset from the given result.
+   * @param color Dataset color inherited from Queue Item.
+   * @param result
+   */
+  addNewResult(result: QualityIndicators, color: string) {
     const resultKeys = Object.keys(result);
     for (const qualityIndicatorName of resultKeys) {
       if (qualityIndicatorName == "currentSeed") continue;
-      if (
-        !this.qualityIndicators.find((val) => val.id == qualityIndicatorName)
-          .selected
-      )
-        continue;
+      if (!this.qualityIndicators[qualityIndicatorName].selected) continue;
       const newDataset = Object.assign(
         {
-          borderColor: queueItem.color,
+          borderColor: color,
           hidden: false,
           data: [null].concat(result[qualityIndicatorName]),
         },
@@ -231,53 +200,44 @@ export class ResultsComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Constructs the new dataset based on the selected items.
+   */
   updateChart() {
     if (!this.chart) {
       return;
     }
-    this.chart.data.labels = this.chartLabels;
+
     this.chartDatasets = [];
 
     for (const queueItem of this.queueItems) {
       const qualityIndicatorSelected =
-        this.qualityIndicators.filter(
+        Object.values(this.qualityIndicators).filter(
           (qualityIndicator) => qualityIndicator.selected
         ).length > 0;
       if (!(queueItem.selected && qualityIndicatorSelected)) continue;
+
       const legendDataset = {
         label: queueItem.name,
         borderColor: queueItem.color,
         backgroundColor: queueItem.color,
       };
       this.chartDatasets.push(legendDataset);
+      this.updateLabels(queueItem.numberOfEvaluations / 100);
       queueItem.results.forEach((result) => {
-        this.addNewResult(result, queueItem);
+        this.addNewResult(result, queueItem.color);
       });
     }
+    this.chart.data.labels = this.chartLabels;
     this.chart.data.datasets = this.chartDatasets;
     this.chart.update();
-  }
-
-  updateChartCoroutine(chartDatasets) {
-    return function* () {
-      for (const dataset of chartDatasets) {
-        if (dataset.qualityIndicator == undefined) {
-          dataset.hidden = !dataset.queueItem.selected;
-        } else {
-          dataset.hidden = !(
-            dataset.queueItem.selected && dataset.qualityIndicator.selected
-          );
-        }
-        yield;
-      }
-    };
   }
 
   selectQueueItem(queueItem: GraphQueueItem) {
     if (!this.initialized) return false;
     queueItem.selected = !queueItem.selected;
     if (
-      this.qualityIndicators.filter(
+      Object.values(this.qualityIndicators).filter(
         (qualityIndicator) => qualityIndicator.selected
       ).length > 0
     )
@@ -290,6 +250,7 @@ export class ResultsComponent implements OnInit, OnDestroy {
     qualityIndicator.selected = !qualityIndicator.selected;
     if (this.queueItems.filter((queueItem) => queueItem.selected).length > 0)
       this.updateChart();
+
     return false;
   }
 
@@ -326,7 +287,8 @@ class Colors {
 
 type GraphQueueItem = QueueItem & { selected: boolean; color: any };
 type GraphQualityIndicator = {
-  id: string;
-  name: string;
-  selected: boolean;
+  [key: string]: {
+    name: string;
+    selected: boolean;
+  };
 };
