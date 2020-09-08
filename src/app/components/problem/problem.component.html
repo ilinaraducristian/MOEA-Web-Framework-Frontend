@@ -20,7 +20,7 @@
     </label>
     <div
       class="d-inline-block col-sm-8 col-md-9 col-xl-9"
-      style="padding-left: 0;"
+      style="padding-left: 0"
       id="problem"
       ngbDropdown
     >
@@ -29,14 +29,14 @@
       </button>
       <div ngbDropdownMenu>
         <input
-          style="margin-left: 1rem; margin-right: 1rem; width: auto;"
+          style="margin-left: 1rem; margin-right: 1rem; width: auto"
           type="text"
           class="form-control"
           (keyup)="search('problem', $event.target.value)"
         />
         <button
           ngbDropdownItem
-          *ngFor="let problem of displayed['problems']"
+          *ngFor="const; problem: of; displayed: ['problems']"
           (click)="select('problem', problem)"
         >
           {{ problem }}
@@ -51,7 +51,7 @@
     </label>
     <div
       class="d-inline-block col-sm-8 col-md-9 col-xl-9"
-      style="padding-left: 0;"
+      style="padding-left: 0"
       id="algorithm"
       ngbDropdown
     >
@@ -60,14 +60,14 @@
       </button>
       <div ngbDropdownMenu>
         <input
-          style="margin-left: 1rem; margin-right: 1rem; width: auto;"
+          style="margin-left: 1rem; margin-right: 1rem; width: auto"
           type="text"
           class="form-control"
           (keyup)="search('algorithm', $event.target.value)"
         />
         <button
           ngbDropdownItem
-          *ngFor="let algorithm of displayed['algorithms']"
+          *ngFor="const; algorithm: of; displayed: ['algorithms']"
           (click)="select('algorithm', algorithm)"
         >
           {{ algorithm }}
@@ -105,7 +105,7 @@
 
   <div class="form-group row align-items-center">
     <button
-      style="margin-left: 1rem;"
+      style="margin-left: 1rem"
       type="button"
       class="btn btn-primary col-10 col-sm-3 col-lg-2"
       (click)="addQueueItem()"
@@ -116,7 +116,7 @@
 
   <div
     class="form-group row align-items-center border"
-    style="padding: 1rem;"
+    style="padding: 1rem"
     *ngIf="user.id == 1"
   >
     <label for="progress-problem" class="col-5 col-sm-4 col-md-3">
@@ -130,7 +130,7 @@
       (change)="addFile('problem', $event.target.files)"
     />
     <ngb-progressbar
-      style="margin-top: 1rem; margin-bottom: 1rem;"
+      style="margin-top: 1rem; margin-bottom: 1rem"
       class="col-12"
       type="info"
       height="1.5rem"
@@ -142,7 +142,7 @@
       <i> {{ progress.problem }}% </i>
     </ngb-progressbar>
     <button
-      style="margin-left: 1rem;"
+      style="margin-left: 1rem"
       type="button"
       class="btn btn-primary col-10 col-sm-4 col-lg-2"
       (click)="uploadFile('problem')"
@@ -153,7 +153,7 @@
 
   <div
     class="form-group row align-items-center border"
-    style="padding: 1rem;"
+    style="padding: 1rem"
     *ngIf="user.id == 1"
   >
     <label for="progress-algorithm" class="col-5 col-sm-4 col-md-3">
@@ -167,7 +167,7 @@
       (change)="addFile('algorithm', $event.target.files[0])"
     />
     <ngb-progressbar
-      style="margin-top: 1rem; margin-bottom: 1rem;"
+      style="margin-top: 1rem; margin-bottom: 1rem"
       class="col-12"
       type="info"
       height="1.5rem"
@@ -179,7 +179,7 @@
       <i> {{ progress.algorithm }}% </i>
     </ngb-progressbar>
     <button
-      style="margin-left: 1rem;"
+      style="margin-left: 1rem"
       type="button"
       class="btn btn-primary col-10 col-sm-4 col-lg-2"
       (click)="uploadFile('algorithm')"

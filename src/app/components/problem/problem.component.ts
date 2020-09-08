@@ -98,7 +98,7 @@ export class ProblemComponent implements OnInit, OnDestroy {
   }
 
   addQueueItem() {
-    let queueItem: QueueItem = {
+    const queueItem: QueueItem = {
       name: this.formGroup.value.name,
       problem: this.selected["problem"],
       algorithm: this.selected["algorithm"],

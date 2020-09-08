@@ -12,7 +12,7 @@
           </thead>
           <tbody>
             <tr
-              *ngFor="let queueItem of queueItems"
+              *ngFor="const; queueItem: of; queueItems"
               [ngClass]="{ active: queueItem.selected }"
               (click)="selectQueueItem(queueItem)"
             >
@@ -24,12 +24,12 @@
         </table>
       </div>
       <div class="row">
-        <div class="list-group col-sm-12" style="padding-right: 0;">
+        <div class="list-group col-sm-12" style="padding-right: 0">
           <button
             type="button"
             class="list-group-item list-group-item-action"
-            style="padding: 0.2rem 1.25rem;"
-            *ngFor="let qualityIndicator of qualityIndicators | keyvalue"
+            style="padding: 0.2rem 1.25rem"
+            *ngFor="const qualityIndicator of qualityIndicators | keyvalue"
             [ngClass]="{ active: qualityIndicator.value.selected }"
             (click)="selectQualityIndicator(qualityIndicator.value)"
           >

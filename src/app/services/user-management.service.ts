@@ -20,10 +20,7 @@ export class UserManagementService implements OnDestroy {
 
   private userOrGuest$: BehaviorSubject<User> = new BehaviorSubject(null);
 
-  private rabbitSubscriptions: {
-    queueItem: QueueItem;
-    subscription: Subscription;
-  }[][];
+  private rabbitSubscriptions: RabbitSubscription[][] = [[], []];
 
   constructor(
     private readonly rxStompService: RxStompService,
@@ -31,8 +28,6 @@ export class UserManagementService implements OnDestroy {
     private readonly jwtHelperService: JwtHelperService,
     private readonly databaseService: DatabaseService
   ) {
-    this.rabbitSubscriptions = [[], []];
-
     Promise.all([
       databaseService
         .getById(UserType.Guest)
@@ -73,7 +68,7 @@ export class UserManagementService implements OnDestroy {
   }
 
   private createGuest() {
-    let guest = {
+    const guest = {
       id: UserType.Guest,
       username: "",
       email: "",
@@ -89,7 +84,7 @@ export class UserManagementService implements OnDestroy {
 
   private updateGuestQueue() {
     if (this.guest.queue.length == 0) return;
-    let body = this.guest.queue.map((queueItem) => queueItem.rabbitId);
+    const body = this.guest.queue.map((queueItem) => queueItem.rabbitId);
     return this.http
       .post<QueueItem[]>(`${environment.queues[UserType.Guest]}`, body)
       .toPromise()
@@ -171,7 +166,7 @@ export class UserManagementService implements OnDestroy {
   }
 
   private removeRabbitSubscription(user: User, qI: QueueItem) {
-    let found = this.rabbitSubscriptions[user.id].findIndex(
+    const found = this.rabbitSubscriptions[user.id].findIndex(
       (value) => value.queueItem === qI
     );
     if (found != -1) {
@@ -364,7 +359,7 @@ export class UserManagementService implements OnDestroy {
   uploadFile(type: string, files: File[]) {
     console.log(files);
     if (type !== "problem" && type != "algorithm") return;
-    let formData = new FormData();
+    const formData = new FormData();
     formData.append("override", "true");
     formData.append("name", files[0].name);
     if (type == "problem") {
@@ -394,3 +389,8 @@ export class UserManagementService implements OnDestroy {
     });
   }
 }
+
+type RabbitSubscription = {
+  queueItem: QueueItem;
+  subscription: Subscription;
+};

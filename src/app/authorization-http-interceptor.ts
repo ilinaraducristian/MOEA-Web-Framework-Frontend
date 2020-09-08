@@ -18,7 +18,7 @@ export class AuthorizationHttpInterceptor implements HttpInterceptor {
   ];
 
   static REGEXP = (() => {
-    let temp = AuthorizationHttpInterceptor.AUTH_URLS.map(
+    const temp = AuthorizationHttpInterceptor.AUTH_URLS.map(
       (link, i) =>
         `^${link}$${
           i == AuthorizationHttpInterceptor.AUTH_URLS.length - 1 ? "" : "|"
@@ -33,7 +33,7 @@ export class AuthorizationHttpInterceptor implements HttpInterceptor {
     request: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
-    let urlNeedsAuth = AuthorizationHttpInterceptor.REGEXP.test(request.url);
+    const urlNeedsAuth = AuthorizationHttpInterceptor.REGEXP.test(request.url);
     if (urlNeedsAuth) {
       request = request.clone({
         setHeaders: {
