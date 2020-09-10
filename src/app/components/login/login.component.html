@@ -1,8 +1,36 @@
 <div class="container">
-  <div class="alert alert-danger row col-12" *ngIf="!serviceAvailable">
-    Service is temporarily unavailable. please try again later.
+  <div *ngIf="isMenuSelected" class="menu-container">
+    <button type="button">
+      <img class="menu-icon" src="assets/google_logo.svg" alt="Google logo" />
+      Sign in with Google
+    </button>
+    <button type="button">
+      <img
+        class="menu-icon"
+        class="menu-icon"
+        src="assets/facebook_logo.svg"
+        alt="Google logo"
+      />
+      Sign in with Facebook
+    </button>
+    <button type="button">
+      <img class="menu-icon" src="assets/github_logo.svg" alt="Google logo" />
+      Sign in with Github
+    </button>
+    <button type="button">
+      <img class="menu-icon" src="assets/twitter_logo.svg" alt="Google logo" />
+      Sign in with Twitter
+    </button>
+    <button type="button">
+      <fa-icon
+        transform="grow-10"
+        [icon]="faEnvelope"
+        class="btn menu-icon"
+      ></fa-icon>
+      Sign in with Username
+    </button>
   </div>
-  <div class="row justify-content-center">
+  <div *ngIf="!isMenuSelected" class="row justify-content-center">
     <form class="col-sm-4" [formGroup]="formGroup">
       <div class="row">
         <div class="form-group col-sm-12">

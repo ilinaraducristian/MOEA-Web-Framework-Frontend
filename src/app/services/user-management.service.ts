@@ -90,15 +90,19 @@ export class UserManagementService implements OnDestroy {
       .toPromise()
       .then((queue) => {
         this.guest.queue = queue;
+        return this.databaseService.update(this.guest);
+      })
+      .then((guest) => {
         this.guest.queue.forEach((queueItem) => {
-          // TODO de ce fac un nou queue pt guest ?
           if (queueItem.status == "working") {
             this.addRabbitSubscription(this.guest, queueItem);
           }
         });
-        return this.databaseService.update(this.guest);
       })
-      .catch((error) => Promise.resolve());
+      .catch((error) => {
+        console.log(error);
+        Promise.resolve();
+      });
   }
 
   private updateUserQueue() {
@@ -106,27 +110,26 @@ export class UserManagementService implements OnDestroy {
       .get<QueueItem[]>(`${environment.queues[UserType.User]}`)
       .toPromise()
       .then((queue) => {
+        // TODO should update all user details not only the queue
         this._user.queue = queue;
+        return this.databaseService.update(this.guest);
+      })
+      .then((user) => {
         this._user.queue.forEach((queueItem) => {
           if (queueItem.status == "working") {
             this.addRabbitSubscription(this._user, queueItem);
           }
         });
-        return this.databaseService.update(this.user);
       })
-      .catch((error) => Promise.resolve());
+      .catch((error) => {
+        console.log(error);
+        Promise.resolve();
+      });
   }
 
   private addRabbitSubscription(user: User, queueItem: QueueItem) {
-    let rabbitRoute;
-    if (user.id == UserType.User) {
-      rabbitRoute = `user.${user.username}.${queueItem.rabbitId}`;
-    } else {
-      rabbitRoute = `guest.${queueItem.rabbitId}`;
-    }
-
     const subscription = this.rxStompService
-      .watch(rabbitRoute)
+      .watch(queueItem.rabbitId)
       .pipe(
         map((message) => JSON.parse(message["body"]) as RabbitResponse),
         takeWhile((message) => message.status != "done", true),
@@ -178,6 +181,15 @@ export class UserManagementService implements OnDestroy {
   }
 
   signup(userInfo) {
+    this.http
+      .post(`${environment.user}/register`, {
+        username: userInfo.username,
+        password: userInfo.password,
+        email: userInfo.email,
+        firstName: userInfo.firstName,
+        lastName: userInfo.lastName,
+      })
+      .toPromise();
     return new Promise((resolve, reject) => {
       this.http
         .post(`${environment.user}/register`, {

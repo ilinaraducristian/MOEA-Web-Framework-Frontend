@@ -13,7 +13,7 @@
     </tr>
   </thead>
   <tbody *ngIf="user != null">
-    <tr *ngFor="const queueItem of user.queue">
+    <tr *ngFor="let queueItem of user.queue">
       <th scope="row">{{ queueItem.name }}</th>
       <td>{{ queueItem.problem }}</td>
       <td>

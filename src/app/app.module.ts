@@ -9,7 +9,7 @@ import { NgbModule } from "@ng-bootstrap/ng-bootstrap";
 import {
   InjectableRxStompConfig,
   RxStompService,
-  rxStompServiceFactory
+  rxStompServiceFactory,
 } from "@stomp/ng2-stompjs";
 import { NgxIndexedDBModule } from "ngx-indexed-db";
 import { rxStompConfig } from "src/configurations/rxStompConfig";
@@ -25,6 +25,16 @@ import { QueueComponent } from "./components/queue/queue.component";
 import { ResultsComponent } from "./components/results/results.component";
 import { SignupComponent } from "./components/signup/signup.component";
 
+import {
+  SocialLoginModule,
+  SocialAuthServiceConfig,
+} from "angularx-social-login";
+import {
+  GoogleLoginProvider,
+  FacebookLoginProvider,
+  AmazonLoginProvider,
+} from "angularx-social-login";
+
 export function tokenGetter() {
   return localStorage.getItem("jwt");
 }
@@ -37,7 +47,7 @@ export function tokenGetter() {
     HomeComponent,
     QueueComponent,
     ProblemComponent,
-    ResultsComponent
+    ResultsComponent,
   ],
   imports: [
     BrowserModule,
@@ -47,32 +57,53 @@ export function tokenGetter() {
     HttpClientModule,
     ReactiveFormsModule,
     FontAwesomeModule,
+    SocialLoginModule,
     ServiceWorkerModule.register("ngsw-worker.js", {
-      enabled: environment.production
+      enabled: environment.production,
     }),
     JwtModule.forRoot({
       config: {
         tokenGetter,
-        whitelistedDomains: [environment.backendDomain]
-      }
-    })
+        whitelistedDomains: [environment.backendDomain],
+      },
+    }),
   ],
   providers: [
     {
       provide: InjectableRxStompConfig,
-      useValue: rxStompConfig
+      useValue: rxStompConfig,
     },
     {
       provide: RxStompService,
       useFactory: rxStompServiceFactory,
-      deps: [InjectableRxStompConfig]
+      deps: [InjectableRxStompConfig],
     },
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthorizationHttpInterceptor,
-      multi: true
-    }
+      multi: true,
+    },
+    {
+      provide: "SocialAuthServiceConfig",
+      useValue: {
+        autoLogin: false,
+        providers: [
+          {
+            id: GoogleLoginProvider.PROVIDER_ID,
+            provider: new GoogleLoginProvider("clientId"),
+          },
+          {
+            id: FacebookLoginProvider.PROVIDER_ID,
+            provider: new FacebookLoginProvider("clientId"),
+          },
+          {
+            id: AmazonLoginProvider.PROVIDER_ID,
+            provider: new AmazonLoginProvider("clientId"),
+          },
+        ],
+      } as SocialAuthServiceConfig,
+    },
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
 export class AppModule {}
