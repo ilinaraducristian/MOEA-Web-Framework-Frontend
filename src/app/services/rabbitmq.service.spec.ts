@@ -1,13 +1,13 @@
 import {TestBed} from '@angular/core/testing';
 
-import {DatabaseService} from './database.service';
+import {RabbitmqService} from './rabbitmq.service';
 
-describe('DatabaseService', () => {
-  let service: DatabaseService;
+describe('RabbitmqService', () => {
+  let service: RabbitmqService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(DatabaseService);
+    service = TestBed.inject(RabbitmqService);
   });
 
   it('should be created', () => {

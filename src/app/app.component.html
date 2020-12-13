@@ -1,58 +1,24 @@
-<nav class="navbar navbar-expand navbar-light bg-light">
-  <!-- <button
-    class="navbar-toggler"
-    type="button"
-    data-toggle="collapse"
-    data-target="#navbarSupportedContent"
-  >
-    <span class="navbar-toggler-icon"></span>
-  </button> -->
+<!--<ul ngbNav [activeId]="route.fragment | async" class="nav-tabs">-->
+<!--  <li [ngbNavItem]="link.path" *ngFor="let link of routes">-->
+<!--    <a ngbNavLink routerLink="/{{link.path}}" >{{ link.title }}</a>-->
+<!--  </li>-->
+<!--</ul>-->
 
-  <div class="navbar-collapse">
-    <ul class="navbar-nav mr-auto">
-      <li class="nav-item active">
-        <a
-          class="nav-link"
-          routerLink="/"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-        >
-          Home
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/problem" routerLinkActive="active">
-          Problem
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/queue" routerLinkActive="active">
-          Queue
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/results" routerLinkActive="active">
-          Results
-        </a>
+
+<div class="main-container">
+  <div class="sidebar">
+    <ul class="sidebar-list">
+      <li *ngFor="let link of routes" class="sidebar-list-item">
+        <a [routerLinkActiveOptions]="{ exact: true }"
+           class="sidebar-list-item-link"
+           routerLink="/{{link.path}}"
+           routerLinkActive="active"
+        > {{link.title}} </a>
       </li>
     </ul>
-    <div *ngIf="user != null">
-      <div *ngIf="user.id == UserType.Guest">
-        <a routerLink="/login" id="login">Log In</a>
-        <a routerLink="/signup" class="btn btn-outline-primary">
-          Sign Up
-        </a>
-      </div>
-
-      <div class="d-inline-block" ngbDropdown *ngIf="user.id == UserType.User">
-        <a href="" ngbDropdownToggle (click)="(false)">{{ user.firstName }}</a>
-        <div ngbDropdownMenu class="dropdown-menu-right">
-          <button ngbDropdownItem>Profile</button>
-          <button ngbDropdownItem (click)="logout()">Sign out</button>
-        </div>
-      </div>
-    </div>
   </div>
-</nav>
 
-<router-outlet></router-outlet>
+  <div class="main">
+    <router-outlet></router-outlet>
+  </div>
+</div>

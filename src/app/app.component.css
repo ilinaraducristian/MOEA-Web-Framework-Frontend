@@ -1,0 +1,46 @@
+.sidebar {
+  padding-top: 2rem;
+  width: 10rem;
+  border: solid 3px black;
+  background: #f8f9fa;
+  min-height: max-content;
+}
+
+.sidebar:focus {
+  animation-name: slide-in;
+}
+
+.sidebar-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.sidebar-list-item {
+  /*background: #007bff;*/
+  padding-left: 1rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+.sidebar-list-item-link {
+  color: #6c757d;
+  font-size: 1.2rem;
+}
+
+.main-container {
+  display: flex;
+  /*margin-left: 150px;*/
+}
+
+.main {
+  flex-grow: 1;
+}
+
+@keyframes slide-in {
+  from {
+    width: 0
+  }
+  to {
+    width: 10rem
+  }
+}

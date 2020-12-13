@@ -1,12 +1,15 @@
-import { QueueItem } from "./queue-item";
+import {QueueItem} from './queue-item';
 
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName?: string;
-  problems: string[];
-  algorithms: string[];
-  queue: QueueItem[];
+export class User {
+
+  id = 0;
+  username = '';
+  email = '';
+  firstName = '';
+  lastName: string | null = null;
+  problems: string[] = [];
+  algorithms: string[] = [];
+  referenceSets: string[] = [];
+  queue: QueueItem[] = [];
+
 }

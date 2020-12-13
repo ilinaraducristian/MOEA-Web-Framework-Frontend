@@ -1,13 +1,14 @@
-import { QualityIndicators } from "./quality-indicators";
+export class QueueItem {
 
-export interface QueueItem {
-  name: string;
-  problem: string;
-  algorithm: string;
-  numberOfEvaluations: number;
-  numberOfSeeds: number;
-  status: string;
-  results: QualityIndicators[];
-  progress?: number;
-  rabbitId?: string;
+  name = '';
+  numberOfEvaluations = 0;
+  numberOfSeeds = 0;
+  status = '';
+  rabbitId: string | null = null;
+  results: string[] = [];
+  algorithmMD5 = '';
+  problemMD5 = '';
+  referenceSetMD5 = '';
+  progress: number | null = null;
+
 }

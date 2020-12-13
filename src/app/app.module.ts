@@ -1,109 +1,113 @@
-import { HttpClientModule, HTTP_INTERCEPTORS } from "@angular/common/http";
-import { NgModule } from "@angular/core";
-import { ReactiveFormsModule } from "@angular/forms";
-import { BrowserModule } from "@angular/platform-browser";
-import { ServiceWorkerModule } from "@angular/service-worker";
-import { JwtModule } from "@auth0/angular-jwt";
-import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
-import { NgbModule } from "@ng-bootstrap/ng-bootstrap";
-import {
-  InjectableRxStompConfig,
-  RxStompService,
-  rxStompServiceFactory,
-} from "@stomp/ng2-stompjs";
-import { NgxIndexedDBModule } from "ngx-indexed-db";
-import { rxStompConfig } from "src/configurations/rxStompConfig";
-import { indexedDBConfig } from "../configurations/indexedDBConfig";
-import { environment } from "../environments/environment";
-import { AppRoutingModule } from "./app-routing.module";
-import { AppComponent } from "./app.component";
-import { AuthorizationHttpInterceptor } from "./authorization-http-interceptor";
-import { HomeComponent } from "./components/home/home.component";
-import { LoginComponent } from "./components/login/login.component";
-import { ProblemComponent } from "./components/problem/problem.component";
-import { QueueComponent } from "./components/queue/queue.component";
-import { ResultsComponent } from "./components/results/results.component";
-import { SignupComponent } from "./components/signup/signup.component";
+import {BrowserModule} from '@angular/platform-browser';
+import {APP_INITIALIZER, NgModule} from '@angular/core';
 
-import {
-  SocialLoginModule,
-  SocialAuthServiceConfig,
-} from "angularx-social-login";
-import {
-  GoogleLoginProvider,
-  FacebookLoginProvider,
-  AmazonLoginProvider,
-} from "angularx-social-login";
+import {AppRoutingModule} from './app-routing.module';
+import {AppComponent} from './app.component';
+import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
+import {HomeComponent} from './components/home/home.component';
+import {ProblemComponent} from './components/problem/problem.component';
+import {DBConfig, NgxIndexedDBModule} from 'ngx-indexed-db';
+import {KeycloakAngularModule, KeycloakService} from 'keycloak-angular';
+import {environment} from '../environments/environment';
+import {HttpClientModule} from '@angular/common/http';
 
-export function tokenGetter() {
-  return localStorage.getItem("jwt");
+const dbConfig: DBConfig = {
+  name: 'moeawebframework',
+  version: 1,
+  objectStoresMeta: [{
+    store: 'people',
+    storeConfig: {keyPath: 'id', autoIncrement: true},
+    storeSchema: [
+      {name: 'name', keypath: 'name', options: {unique: false}},
+      {name: 'email', keypath: 'email', options: {unique: false}}
+    ]
+  }]
+};
+
+export const indexedDBConfig: DBConfig = {
+  name: 'moeawebframework',
+  version: 1,
+  objectStoresMeta: [
+    {
+      store: 'users',
+      storeConfig: {keyPath: 'id', autoIncrement: false},
+      storeSchema: [
+        {
+          name: 'username',
+          keypath: 'username',
+          options: {unique: true}
+        },
+        {
+          name: 'email',
+          keypath: 'email',
+          options: {unique: true}
+        },
+        {
+          name: 'firstName',
+          keypath: 'firstName',
+          options: {unique: true}
+        },
+        {
+          name: 'lastName',
+          keypath: 'lastName',
+          options: {unique: false}
+        },
+        {
+          name: 'problems',
+          keypath: 'problems',
+          options: {unique: false}
+        },
+        {
+          name: 'algorithms',
+          keypath: 'algorithms',
+          options: {unique: false}
+        },
+        {
+          name: 'queue',
+          keypath: 'queue',
+          options: {unique: false}
+        }
+      ]
+    }
+  ]
+};
+
+function initializeKeycloak(keycloak: KeycloakService): () => Promise<boolean> {
+  return () =>
+    keycloak.init({
+      config: {
+        url: environment.keycloak.url,
+        realm: environment.keycloak.realm,
+        clientId: environment.keycloak.clientId,
+      },
+      initOptions: {
+        onLoad: 'check-sso',
+        silentCheckSsoRedirectUri:
+          window.location.origin + '/assets/silent-check-sso.html',
+      }
+    });
 }
-
 @NgModule({
   declarations: [
     AppComponent,
-    LoginComponent,
-    SignupComponent,
     HomeComponent,
-    QueueComponent,
     ProblemComponent,
-    ResultsComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     NgbModule,
-    NgxIndexedDBModule.forRoot(indexedDBConfig),
+    NgxIndexedDBModule.forRoot(dbConfig),
     HttpClientModule,
-    ReactiveFormsModule,
-    FontAwesomeModule,
-    SocialLoginModule,
-    ServiceWorkerModule.register("ngsw-worker.js", {
-      enabled: environment.production,
-    }),
-    JwtModule.forRoot({
-      config: {
-        tokenGetter,
-        whitelistedDomains: [environment.backendDomain],
-      },
-    }),
+    KeycloakAngularModule
   ],
-  providers: [
-    {
-      provide: InjectableRxStompConfig,
-      useValue: rxStompConfig,
-    },
-    {
-      provide: RxStompService,
-      useFactory: rxStompServiceFactory,
-      deps: [InjectableRxStompConfig],
-    },
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: AuthorizationHttpInterceptor,
-      multi: true,
-    },
-    {
-      provide: "SocialAuthServiceConfig",
-      useValue: {
-        autoLogin: false,
-        providers: [
-          {
-            id: GoogleLoginProvider.PROVIDER_ID,
-            provider: new GoogleLoginProvider("clientId"),
-          },
-          {
-            id: FacebookLoginProvider.PROVIDER_ID,
-            provider: new FacebookLoginProvider("clientId"),
-          },
-          {
-            id: AmazonLoginProvider.PROVIDER_ID,
-            provider: new AmazonLoginProvider("clientId"),
-          },
-        ],
-      } as SocialAuthServiceConfig,
-    },
-  ],
-  bootstrap: [AppComponent],
+  providers: [{
+    provide: APP_INITIALIZER,
+    useFactory: initializeKeycloak,
+    multi: true,
+    deps: [KeycloakService]
+  }],
+  bootstrap: [AppComponent]
 })
-export class AppModule {}
+export class AppModule {
+}

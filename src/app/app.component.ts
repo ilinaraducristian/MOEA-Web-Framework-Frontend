@@ -1,49 +1,39 @@
-import { Component, OnDestroy } from "@angular/core";
-import { Router } from "@angular/router";
-import { Subscription } from "rxjs";
-import { UserType } from "src/environments/environment";
-import { User } from "./entities/user";
-import { UserManagementService } from "./services/user-management.service";
+import {Component} from '@angular/core';
+import {routes} from './app-routing.module';
+import {HttpClient} from '@angular/common/http';
+import {KeycloakService} from 'keycloak-angular';
 
 @Component({
-  selector: "app-root",
-  templateUrl: "./app.component.html",
-  styleUrls: ["./app.component.sass"],
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnDestroy {
-  private subscription: Subscription;
 
-  public user: User;
-  public UserType = UserType;
+export class AppComponent {
 
-  constructor(
-    private readonly router: Router,
-    private readonly userManagementService: UserManagementService
-  ) {
-    this.user = null;
-  }
+  routes = routes;
+  links = [
+    {title: 'One', fragment: 'one'},
+    {title: 'Two', fragment: 'two'}
+  ];
 
-  ngOnInit() {
-    this.subscription = this.userManagementService.user.subscribe((user) => {
-      this.user = user;
-      if (user == null) return;
+  constructor(private readonly keycloak: KeycloakService, private readonly http: HttpClient) {
+    keycloak.isLoggedIn().then(value => {
+      console.log(value);
+
+      if (!value) {
+        return this.keycloak.login().then(() => {
+        });
+      }
+      return this.http.get('http://localhost:8080/asd').toPromise().then(a => {
+        console.log(a);
+      });
     });
   }
 
-  logout() {
-    this.userManagementService
-      .logout()
-      .then(() => {
-        console.log("ok");
-        this.router.navigateByUrl("");
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-    return false;
-  }
-
-  ngOnDestroy() {
-    if (this.subscription) this.subscription.unsubscribe();
-  }
+  // constructor(public route: ActivatedRoute,
+  //             private readonly http: HttpClient,
+  //             private readonly keycloak: KeycloakService) {
+  //   console.log(keycloak.isLoggedIn());
+  // }
 }

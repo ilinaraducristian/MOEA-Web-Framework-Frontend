@@ -1,31 +1,27 @@
-# MOEA Web Framework Frontend
+# MOEAWebFrameworkFrontend
 
-This project uses the [MOEA Web Framework](https://github.com/ilinaraducristian/MOEA-Web-Framework) for developing and testing optimization problems and algorithms. The front-end is build using Angular 10.
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 11.0.2.
 
-## NPM packages
+## Development server
 
-| Tables                                                                   | Version |
-| ------------------------------------------------------------------------ | ------- |
-| [Angular](https://www.npmjs.com/package/@angular/core)                   | 10.0.2  |
-| [Angular JWT](https://www.npmjs.com/package/@auth0/angular-jwt)          | 4.2.0   |
-| [Font Awesome](https://fontawesome.com/)                                 | -       |
-| [Bootstrap](https://www.npmjs.com/package/bootstrap)                     | 4.5.0   |
-| [NG Bootstrap](https://www.npmjs.com/package/@ng-bootstrap/ng-bootstrap) | 6.1.0   |
-| [NG StompJS](https://www.npmjs.com/package/@stomp/ng2-stompjs)           | 7.2.0   |
-| [ChartJS](https://www.npmjs.com/package/chart.js)                        | 2.3.9   |
-| [NG IndexedDB](https://www.npmjs.com/package/ngx-indexed-db)             | 5.0.5   |
-| [String Similarity](https://www.npmjs.com/package/string-similarity)     | 4.0.1   |
+Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
 
-## Usage
+## Code scaffolding
 
-### Installation
+Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
 
-`npm install`
+## Build
 
-### Development
+Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
 
-`npm start`
+## Running unit tests
 
-### Build for production
+Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
 
-`npm run build:prod`
+## Running end-to-end tests
+
+Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
+
+## Further help
+
+To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
