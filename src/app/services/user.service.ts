@@ -1,13 +1,13 @@
 import {Injectable} from '@angular/core';
-import {BehaviorSubject, Observable} from 'rxjs';
+import {BehaviorSubject, Observable, Subscription} from 'rxjs';
 import {HttpClient} from '@angular/common/http';
 import {User} from '../entities/user';
 import {environment} from '../../environments/environment';
 import {QueueItem} from '../entities/queue-item';
 import {map, mergeMap} from 'rxjs/operators';
-import {DatabaseService} from './database.service';
-import {RabbitmqService} from './rabbitmq.service';
-import {Receiver} from 'rhea-promise';
+import {RxStompService} from '@stomp/ng2-stompjs';
+import {Errors} from '../errors';
+import {NgxIndexedDBService} from 'ngx-indexed-db';
 
 @Injectable({
   providedIn: 'root'
@@ -21,12 +21,26 @@ export class UserService {
   // tslint:disable-next-line:variable-name
   private _rabbitSubscriptions: {
     queueItem: QueueItem;
-    receiver: Receiver;
+    subscription: Subscription;
   }[][] = [[], []];
 
   constructor(private readonly http: HttpClient,
-              private readonly indexedDB: DatabaseService,
-              private readonly rabbitmq: RabbitmqService) {
+              private readonly indexedDB: NgxIndexedDBService,
+              private readonly rabbitmq: RxStompService) {
+    // loading is true so the user must see a loading screen (app component)
+    // check for indexeddb support
+    this.checkIndexedDBSupport()
+      .then(this.checkIfOnline)
+      // .then(() => Promise.all([
+      //   this.initializeGuest(),
+      //   this.initializeUser()
+      // ]))
+      .catch((error: Error) => {
+        if (error.message in Errors) {
+          this._status.next({status: 'error', error: error.message});
+        }
+      });
+
     Promise.all([
       this.initializeGuest(),
       this.initializeUser()
@@ -47,7 +61,14 @@ export class UserService {
   }
 
   // tslint:disable-next-line:variable-name
+  private _status: BehaviorSubject<object> = new BehaviorSubject<object>({status: 'loading', error: null});
+
+  // tslint:disable-next-line:variable-name
   private _user: User | null = null;
+
+  get status(): Observable<object> {
+    return this._status.asObservable();
+  }
 
   get user(): Observable<User | null> {
     return this.user$.asObservable();
@@ -58,27 +79,31 @@ export class UserService {
   }
 
   async initializeGuest(): Promise<void> {
-    const guest = await this.indexedDB.getByID(UserType.Guest).toPromise() as User;
+    const guest = await this.indexedDB.getByID('users', UserType.Guest).toPromise() as User;
     if (guest === undefined) {
       const {algorithms, problems} = await this.http.get<{ algorithms: [], problems: [] }>(`${environment.backend}/public`).toPromise();
       this._guest = new User();
       this._guest.algorithms = algorithms;
       this._guest.problems = problems;
       this._guest.referenceSets = problems;
-      await this.indexedDB.add(this._guest).toPromise();
+      await this.indexedDB.add('users', this._guest).toPromise();
       return;
     }
     this._guest = guest;
     await this.updateQueue(this._guest);
   }
 
+  async testFcn(): Promise<void> {
+    const guest = await this.indexedDB.getByID('users', UserType.Guest).toPromise() as User;
+  }
+
   async initializeUser(): Promise<void> {
-    const user = await this.indexedDB.getByID(UserType.User).toPromise() as User;
+    const user = await this.indexedDB.getByID('users', UserType.User).toPromise() as User;
     if (user === undefined) {
       return;
     }
     this._user = user;
-    if (this._user.queue.length === 0) {
+    if (this._user.queue.size === 0) {
       return;
     }
     await this.updateQueue(this._user);
@@ -90,11 +115,11 @@ export class UserService {
         mergeMap(rabbitId => {
           queueItem.rabbitId = rabbitId;
           if (userType === UserType.Guest) {
-            this._guest?.queue.push(queueItem);
+            this._guest?.queue.set(queueItem.rabbitId, queueItem);
           } else {
-            this._user?.queue.push(queueItem);
+            this._user?.queue.set(queueItem.rabbitId, queueItem);
           }
-          return this.indexedDB.update(this._user);
+          return this.indexedDB.update('users', this._user);
         }),
         map(() => {
         })
@@ -123,39 +148,60 @@ export class UserService {
   }
 
   private async updateQueue(user: User): Promise<void> {
-    if (user.queue.length === 0) {
-      return;
-    }
-    const processingQueueItems = user.queue.filter(queueItem => queueItem.status === 'processing');
-    const rabbitIds = processingQueueItems.map(queueItem => queueItem.rabbitId);
-    if (rabbitIds.length === 0) {
-      return;
-    }
-    const notProcessingQueueItems = user.queue.filter(queueItem => queueItem.status !== 'processing');
-    const newQueue = await this.http.post<QueueItem[]>(environment.urls[UserType.Guest].queue, rabbitIds).toPromise();
-    notProcessingQueueItems.push(...newQueue);
-    user.queue = notProcessingQueueItems;
-    await this.indexedDB.update(user).toPromise();
-    this.rabbitmq.connected.subscribe((isConnected) => {
-      if (!isConnected) {
-        return;
-      }
-      newQueue.forEach(async qI => {
-        const receiver = await this.rabbitmq.addListener(qI.rabbitId || '', context => {
-          qI.results.push(context.message?.body);
-          if (qI.results.length === qI.numberOfSeeds) {
-            receiver.close();
-            const elementIndex = this._rabbitSubscriptions[user.id].findIndex(e => e.queueItem === qI);
-            if (elementIndex !== -1) {
-              this._rabbitSubscriptions[user.id].splice(elementIndex, 1);
-            }
-          }
-        });
-        this._rabbitSubscriptions[user.id].push({queueItem: qI, receiver});
-      });
-    });
+    return Promise.resolve();
+    //   const serverQueue = new Map<string, QueueItem>();
+    //   (await this.http.get<QueueItem[]>(environment.urls[UserType.Guest].queue).toPromise()).forEach(e => {
+    //     serverQueue.set(e.rabbitId || '', e);
+    //   });
+    //   user.queue.forEach(async (value, key) => {
+    //     if (!serverQueue.get(key) && value.status === 'waiting') {
+    //       await this.addQueueItem(user.id, value);
+    //       serverQueue.set(key, value);
+    //     }
+    //
+    //   });
+    //   const processingQueueItems = user.queue.filter(queueItem => queueItem.status === 'processing');
+    //   const rabbitIds = processingQueueItems.map(queueItem => queueItem.rabbitId);
+    //   if (rabbitIds.length === 0) {
+    //     return;
+    //   }
+    //   const notProcessingQueueItems = user.queue.filter(queueItem => queueItem.status !== 'processing');
+    //   const newQueue = await this.http.post<QueueItem[]>(environment.urls[UserType.Guest].queue, rabbitIds).toPromise();
+    //   notProcessingQueueItems.push(...newQueue);
+    //   user.queue = notProcessingQueueItems;
+    //   await this.indexedDB.update(user).toPromise();
+    //
+    //   newQueue.forEach(qI => {
+    //     const subscription = this.rabbitmq.watch(qI.rabbitId || '').subscribe(message => {
+    //       qI.results.push(message.body);
+    //       if (qI.results.length === qI.numberOfSeeds) {
+    //         subscription.unsubscribe();
+    //         const elementIndex = this._rabbitSubscriptions[user.id].findIndex(e => e.queueItem === qI);
+    //         if (elementIndex !== -1) {
+    //           this._rabbitSubscriptions[user.id].splice(elementIndex, 1);
+    //         }
+    //       }
+    //     });
+    //     this._rabbitSubscriptions[user.id].push({queueItem: qI, subscription});
+    //   });
   }
 
+  private checkIndexedDBSupport(): Promise<void> {
+    let indexeddbSupport = false;
+    indexeddbSupport = true;
+    if (!indexeddbSupport) {
+      // if no support
+      return Promise.reject(new Error(Errors.indexeddb_missing));
+    }
+    return Promise.resolve();
+  }
+
+  private checkIfOnline(): Promise<void> {
+    if (!window.navigator.onLine) {
+      return Promise.reject();
+    }
+    return Promise.resolve();
+  }
 }
 
 export enum UserType {

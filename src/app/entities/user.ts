@@ -10,6 +10,6 @@ export class User {
   problems: string[] = [];
   algorithms: string[] = [];
   referenceSets: string[] = [];
-  queue: QueueItem[] = [];
+  queue: Map<string, QueueItem> = new Map<string, QueueItem>();
 
 }

@@ -22,7 +22,6 @@ export class DatabaseService extends NgxIndexedDBService {
     return super.getByID(this.storeName, id);
   }
 
-
 }
 
 
