@@ -54,6 +54,7 @@ describe('UserService', () => {
       console.log('value');
       console.log(v);
     }).catch(e => {
+      console.log('error');
       console.log(e);
     });
   });

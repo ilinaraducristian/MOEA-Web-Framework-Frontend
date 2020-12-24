@@ -4,7 +4,7 @@ import {HttpClient} from '@angular/common/http';
 import {User} from '../entities/user';
 import {environment} from '../../environments/environment';
 import {QueueItem} from '../entities/queue-item';
-import {map, mergeMap} from 'rxjs/operators';
+import {map, mergeMap, timeout} from 'rxjs/operators';
 import {RxStompService} from '@stomp/ng2-stompjs';
 import {Errors} from '../errors';
 import {NgxIndexedDBService} from 'ngx-indexed-db';
@@ -93,8 +93,9 @@ export class UserService {
     await this.updateQueue(this._guest);
   }
 
-  async testFcn(): Promise<void> {
-    const guest = await this.indexedDB.getByID('users', UserType.Guest).toPromise() as User;
+  async testFcn(): Promise<any> {
+    return this.http.get<User>('localhost:6969')
+      .pipe(timeout(1000)).toPromise();
   }
 
   async initializeUser(): Promise<void> {
