@@ -1,32 +1,33 @@
-import {Injectable} from '@angular/core';
-import {BehaviorSubject, Observable, Subscription} from 'rxjs';
-import {HttpClient} from '@angular/common/http';
-import {User} from '../entities/user';
-import {environment} from '../../environments/environment';
-import {QueueItem} from '../entities/queue-item';
-import {map, mergeMap, timeout} from 'rxjs/operators';
-import {RxStompService} from '@stomp/ng2-stompjs';
-import {Errors} from '../errors';
-import {NgxIndexedDBService} from 'ngx-indexed-db';
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { RxStompService } from '@stomp/ng2-stompjs';
+import { NgxIndexedDBService } from 'ngx-indexed-db';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import { map, mergeMap, timeout } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+import { QueueItem } from '../entities/queue-item';
+import { User } from '../entities/user';
+import { Errors } from '../errors';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserService {
-
-  // tslint:disable-next-line:variable-name
   private _guest: User | null = null;
   private user$ = new BehaviorSubject<User | null>(new User());
-  private loading: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
-  // tslint:disable-next-line:variable-name
+  private loading: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(
+    true
+  );
   private _rabbitSubscriptions: {
     queueItem: QueueItem;
     subscription: Subscription;
   }[][] = [[], []];
 
-  constructor(private readonly http: HttpClient,
-              private readonly indexedDB: NgxIndexedDBService,
-              private readonly rabbitmq: RxStompService) {
+  constructor(
+    private readonly http: HttpClient,
+    private readonly indexedDB: NgxIndexedDBService,
+    private readonly rabbitmq: RxStompService
+  ) {
     // loading is true so the user must see a loading screen (app component)
     // check for indexeddb support
     this.checkIndexedDBSupport()
@@ -37,31 +38,33 @@ export class UserService {
       // ]))
       .catch((error: Error) => {
         if (error.message in Errors) {
-          this._status.next({status: 'error', error: error.message});
+          this._status.next({ status: 'error', error: error.message });
         }
       });
 
-    Promise.all([
-      this.initializeGuest(),
-      this.initializeUser()
-    ]).then(() => {
-      if (this._guest === null) {
-        return Promise.reject('Guest is null');
-      }
-      if (this._user === null) {
-        this.user$.next(this._guest);
+    Promise.all([this.initializeGuest(), this.initializeUser()])
+      .then(() => {
+        if (this._guest === null) {
+          return Promise.reject('Guest is null');
+        }
+        if (this._user === null) {
+          this.user$.next(this._guest);
+          return Promise.resolve();
+        }
+        this.user$.next(this._user);
         return Promise.resolve();
-      }
-      this.user$.next(this._user);
-      return Promise.resolve();
-    }).catch(error => {
-      console.log('error caught in user service constructor');
-      console.log(error);
-    });
+      })
+      .catch((error) => {
+        console.log('error caught in user service constructor');
+        console.log(error);
+      });
   }
 
   // tslint:disable-next-line:variable-name
-  private _status: BehaviorSubject<object> = new BehaviorSubject<object>({status: 'loading', error: null});
+  private _status: BehaviorSubject<object> = new BehaviorSubject<object>({
+    status: 'loading',
+    error: null,
+  });
 
   // tslint:disable-next-line:variable-name
   private _user: User | null = null;
@@ -79,9 +82,13 @@ export class UserService {
   }
 
   async initializeGuest(): Promise<void> {
-    const guest = await this.indexedDB.getByID('users', UserType.Guest).toPromise() as User;
+    const guest = (await this.indexedDB
+      .getByID('users', UserType.Guest)
+      .toPromise()) as User;
     if (guest === undefined) {
-      const {algorithms, problems} = await this.http.get<{ algorithms: [], problems: [] }>(`${environment.backend}/public`).toPromise();
+      const { algorithms, problems } = await this.http
+        .get<{ algorithms: []; problems: [] }>(`${environment.backend}/public`)
+        .toPromise();
       this._guest = new User();
       this._guest.algorithms = algorithms;
       this._guest.problems = problems;
@@ -94,12 +101,16 @@ export class UserService {
   }
 
   async testFcn(): Promise<any> {
-    return this.http.get<User>('localhost:6969')
-      .pipe(timeout(1000)).toPromise();
+    return this.http
+      .get<User>('localhost:6969')
+      .pipe(timeout(1000))
+      .toPromise();
   }
 
   async initializeUser(): Promise<void> {
-    const user = await this.indexedDB.getByID('users', UserType.User).toPromise() as User;
+    const user = (await this.indexedDB
+      .getByID('users', UserType.User)
+      .toPromise()) as User;
     if (user === undefined) {
       return;
     }
@@ -111,9 +122,10 @@ export class UserService {
   }
 
   addQueueItem(userType: UserType, queueItem: QueueItem): Promise<void> {
-    return this.http.post<string>(environment.urls[userType].queue, queueItem)
+    return this.http
+      .post<string>(environment.urls[userType].queue, queueItem)
       .pipe(
-        mergeMap(rabbitId => {
+        mergeMap((rabbitId) => {
           queueItem.rabbitId = rabbitId;
           if (userType === UserType.Guest) {
             this._guest?.queue.set(queueItem.rabbitId, queueItem);
@@ -122,22 +134,35 @@ export class UserService {
           }
           return this.indexedDB.update('users', this._user);
         }),
-        map(() => {
-        })
+        map(() => {})
       )
       .toPromise();
   }
 
   getQueueItem(userType: UserType, rabbitId: string): Observable<QueueItem> {
-    return this.http.get<QueueItem>(`${environment.urls[userType].queue}/${rabbitId}`);
+    return this.http.get<QueueItem>(
+      `${environment.urls[userType].queue}/${rabbitId}`
+    );
   }
 
-  startQueueItemProcessing(userType: UserType, rabbitId: string): Observable<void> {
-    return this.http.post<void>(`${environment.urls[userType].queue}/${rabbitId}`, null);
+  startQueueItemProcessing(
+    userType: UserType,
+    rabbitId: string
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.urls[userType].queue}/${rabbitId}`,
+      null
+    );
   }
 
-  cancelQueueItemProcessing(userType: UserType, rabbitId: string): Observable<void> {
-    return this.http.post<void>(`${environment.urls[userType].queue}/cancel/${rabbitId}`, null);
+  cancelQueueItemProcessing(
+    userType: UserType,
+    rabbitId: string
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.urls[userType].queue}/cancel/${rabbitId}`,
+      null
+    );
   }
 
   // async getDefaultData(): Promise<void> {
@@ -145,7 +170,9 @@ export class UserService {
   // }
 
   deleteQueueItem(userType: UserType, rabbitId: string): Observable<void> {
-    return this.http.delete<void>(`${environment.urls[userType].queue}/cancel/${rabbitId}`);
+    return this.http.delete<void>(
+      `${environment.urls[userType].queue}/cancel/${rabbitId}`
+    );
   }
 
   private async updateQueue(user: User): Promise<void> {
@@ -207,5 +234,5 @@ export class UserService {
 
 export enum UserType {
   Guest = 0,
-  User = 1
+  User = 1,
 }

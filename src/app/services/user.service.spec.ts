@@ -1,13 +1,19 @@
-import {TestBed} from '@angular/core/testing';
-
-import {UserService} from './user.service';
-import {HttpClientTestingModule, HttpTestingController} from '@angular/common/http/testing';
-import {QueueItem} from '../entities/queue-item';
-import {indexedDBConfig, rxStompConfig} from '../app.module';
-import {NgxIndexedDBModule} from 'ngx-indexed-db';
-import {APP_INITIALIZER} from '@angular/core';
-import {KeycloakAngularModule, KeycloakService} from 'keycloak-angular';
-import {InjectableRxStompConfig, RxStompService, rxStompServiceFactory} from '@stomp/ng2-stompjs';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
+import { APP_INITIALIZER } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import {
+  InjectableRxStompConfig,
+  RxStompService,
+  rxStompServiceFactory,
+} from '@stomp/ng2-stompjs';
+import { KeycloakAngularModule, KeycloakService } from 'keycloak-angular';
+import { NgxIndexedDBModule } from 'ngx-indexed-db';
+import { indexedDBConfig, rxStompConfig } from '../app.module';
+import { QueueItem } from '../entities/queue-item';
+import { UserService } from './user.service';
 
 describe('UserService', () => {
   let service: UserService;
@@ -19,14 +25,14 @@ describe('UserService', () => {
       imports: [
         HttpClientTestingModule,
         NgxIndexedDBModule.forRoot(indexedDBConfig),
-        KeycloakAngularModule
+        KeycloakAngularModule,
       ],
       providers: [
         {
           provide: APP_INITIALIZER,
-          useFactory: () => (() => Promise.resolve()),
+          useFactory: () => () => Promise.resolve(),
           multi: true,
-          deps: [KeycloakService]
+          deps: [KeycloakService],
         },
         {
           provide: InjectableRxStompConfig,
@@ -37,12 +43,14 @@ describe('UserService', () => {
           useFactory: rxStompServiceFactory,
           deps: [InjectableRxStompConfig],
         },
-      ]
+      ],
     });
     service = TestBed.inject(UserService);
     rxStompService = TestBed.inject(RxStompService);
     rxStompService.deactivate();
-    httpTestingController = TestBed.inject<HttpTestingController>(HttpTestingController);
+    httpTestingController = TestBed.inject<HttpTestingController>(
+      HttpTestingController
+    );
   });
 
   it('should be created', () => {
@@ -50,13 +58,16 @@ describe('UserService', () => {
   });
 
   it('testing a request', () => {
-    service.testFcn().then(v => {
-      console.log('value');
-      console.log(v);
-    }).catch(e => {
-      console.log('error');
-      console.log(e);
-    });
+    service
+      .testFcn()
+      .then((v) => {
+        console.log('value');
+        console.log(v);
+      })
+      .catch((e) => {
+        console.log('error');
+        console.log(e);
+      });
   });
 
   it('should return the rabbit id', () => {
@@ -66,5 +77,4 @@ describe('UserService', () => {
     //   });
     //   httpTestingController.expectOne(`${environment.backend}/queue`).flush('8abdbf4a-714d-49a7-9ad0-26a8b156eae2');
   });
-
 });
