@@ -3,24 +3,23 @@
 <!--    <a ngbNavLink routerLink="/{{link.path}}" >{{ link.title }}</a>-->
 <!--  </li>-->
 <!--</ul>-->
-
-
 <div class="main-container">
-  <div class="sidebar">
+  <!-- <div class="sidebar">
     <ul class="sidebar-list">
-      <li *ngFor="let link of routes" class="sidebar-list-item">
-        <a [routerLinkActiveOptions]="{ exact: true }"
-           class="sidebar-list-item-link"
-           routerLink="/{{link.path}}"
-           routerLinkActive="active"
-        > {{link.title}} </a>
+      <li *ngFor="let route of routes | keyvalue" class="sidebar-list-item">
+        <a
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="sidebar-list-item-link"
+          routerLink="/{{ route.key }}"
+          routerLinkActive="active"
+        >
+          {{ link.title }}
+        </a>
       </li>
     </ul>
-  </div>
+  </div> -->
 
-  <div class="network-status-bar">
-
-  </div>
+  <div *ngIf="this.isOffline">You are offline!</div>
 
   <div class="main">
     <router-outlet></router-outlet>

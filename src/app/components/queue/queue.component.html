@@ -1,0 +1,10 @@
+<div *ngIf="isReady === true">
+  <table>
+    <tr *ngFor="let queueItem of Array.from(user.queue.values())">
+      <td *ngFor="let item of queueItem | keyvalue">
+        {{ item.value }}
+      </td>
+      <td><input type="button" value="Start" (click)="startProcessing(queueItem.rabbitId)"></td>
+    </tr>
+  </table>
+</div>

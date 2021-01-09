@@ -1,0 +1,54 @@
+<div *ngIf="isReady === true">
+  <h1 *ngIf="this.error !== undefined">{{ error }}</h1>
+
+  <form>
+    <label for="name">Name:</label>
+    <input type="text" name="name" id="name" [(ngModel)]="queueItem.name"/>
+
+    <br/>
+
+    <label for="numberOfEvaluations">Number of Evaluations:</label>
+    <input
+      type="number"
+      name="numberOfEvaluations"
+      id="numberOfEvaluations"
+      [(ngModel)]="queueItem.numberOfEvaluations"
+    />
+
+    <br/>
+
+    <label for="numberOfSeeds">Seeds:</label>
+    <input
+      type="number"
+      name="numberOfSeeds"
+      id="numberOfSeeds"
+      [(ngModel)]="queueItem.numberOfSeeds"
+    />
+
+    <br/>
+
+    <label for="algorithm">Algorithm:</label>
+    <select name="algorithm" id="algorithm" [(ngModel)]="queueItem.algorithm">
+      <option
+        *ngFor="let algorithm of user.algorithms; let i = index"
+        [attr.selected]="i == 0 ? '' : null"
+        value="{{ algorithm }}"
+      >
+        {{ algorithm }}
+      </option>
+    </select>
+
+    <br/>
+
+    <label for="problem">Problem:</label>
+    <select name="problem" id="problem" [(ngModel)]="queueItem.problem">
+      <option *ngFor="let problem of user.problems" value="{{ problem }}">
+        {{ problem }}
+      </option>
+    </select>
+
+    <br/>
+
+    <button type="submit" (click)="addQueueItem()">Add</button>
+  </form>
+</div>

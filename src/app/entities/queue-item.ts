@@ -1,14 +1,15 @@
-export class QueueItem {
+import { UserType } from '../user-type.enum';
 
+export class QueueItem {
   name = '';
   numberOfEvaluations = 0;
   numberOfSeeds = 0;
-  status = '';
-  rabbitId: string | null = null;
+  status = 'waiting';
+  rabbitId = '';
   results: string[] = [];
-  algorithmMD5 = '';
-  problemMD5 = '';
-  referenceSetMD5 = '';
-  progress: number | null = null;
-
+  algorithm = '';
+  problem = '';
+  referenceSet = '';
+  progress = -1;
+  userId: UserType = UserType.Guest;
 }
