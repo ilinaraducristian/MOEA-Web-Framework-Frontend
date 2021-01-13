@@ -1,10 +1,52 @@
 <div *ngIf="isReady === true">
-  <table>
-    <tr *ngFor="let queueItem of Array.from(user.queue.values())">
-      <td *ngFor="let item of queueItem | keyvalue">
-        {{ item.value }}
-      </td>
-      <td><input type="button" value="Start" (click)="startProcessing(queueItem.rabbitId)"></td>
+  <!--  <table>-->
+  <!--    <tr *ngFor="let queueItem of Array.from(user.queue.values())">-->
+  <!--      <td *ngFor="let item of queueItem | keyvalue">-->
+  <!--        {{ item.value }}-->
+  <!--      </td>-->
+  <!--      <td><input type="button" value="Start" (click)="startProcessing(queueItem.rabbitId)"></td>-->
+  <!--    </tr>-->
+  <!--  </table>-->
+  <table class="table">
+    <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Name</th>
+      <th scope="col">E/S</th>
+      <th scope="col">A/P</th>
+      <th scope="col">Status</th>
+      <th scope="col">Action</th>
     </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let queueItem of Array.from(user.queue.values()); let i = index">
+      <th scope="row">{{i + 1}}</th>
+      <td>{{queueItem.name}}</td>
+      <td class="two-row-cell">
+        <div>
+          {{queueItem.numberOfEvaluations}}
+        </div>
+        <div>
+          {{queueItem.numberOfSeeds}}
+        </div>
+      </td>
+      <td class="two-row-cell2">
+        <div>
+          {{queueItem.algorithmMD5}}
+        </div>
+        <div>
+          {{queueItem.problemMD5}}
+        </div>
+      </td>
+      <td>
+        {{queueItem.status}}
+      </td>
+      <td>
+        <a href="#">P</a>
+        <a href="#">C</a>
+        <a href="#">D</a>
+      </td>
+    </tr>
+    </tbody>
   </table>
 </div>

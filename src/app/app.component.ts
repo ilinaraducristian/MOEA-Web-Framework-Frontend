@@ -1,10 +1,13 @@
-import { HttpClient } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
-import { KeycloakService } from 'keycloak-angular';
-import { takeUntil } from 'rxjs/operators';
-import { routes } from './app-routing.module';
-import { RxBaseComponent } from './rx-base-component';
-import { OnlineStatusService } from './services/online-status.service';
+import {HttpClient} from '@angular/common/http';
+import {Component, OnInit} from '@angular/core';
+import {KeycloakService} from 'keycloak-angular';
+import {filter, map, takeUntil} from 'rxjs/operators';
+import {routes} from './app-routing.module';
+import {RxBaseComponent} from './rx-base-component';
+import {OnlineStatusService} from './services/online-status.service';
+import {ActivatedRoute, NavigationEnd, Router} from '@angular/router';
+import {NavigationEvent} from '@ng-bootstrap/ng-bootstrap/datepicker/datepicker-view-model';
+import {Observable} from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -16,12 +19,12 @@ export class AppComponent extends RxBaseComponent implements OnInit {
   public isOffline = false;
 
   constructor(
-    private readonly keycloak: KeycloakService,
+    // private readonly keycloak: KeycloakService,
     private readonly http: HttpClient,
-    private readonly onlineStatus: OnlineStatusService
+    private readonly onlineStatus: OnlineStatusService,
+    public readonly router: Router
   ) {
     super();
-
     // check if user is logged in
     // if he's logged in display in navbar username and dropdown
     // if he's not logged in display signup and login
@@ -49,9 +52,4 @@ export class AppComponent extends RxBaseComponent implements OnInit {
       });
   }
 
-  // constructor(public route: ActivatedRoute,
-  //             private readonly http: HttpClient,
-  //             private readonly keycloak: KeycloakService) {
-  //   console.log(keycloak.isLoggedIn());
-  // }
 }

@@ -1,5 +1,5 @@
-import { InjectableRxStompConfig } from '@stomp/ng2-stompjs';
-import { DBConfig } from 'ngx-indexed-db';
+import {InjectableRxStompConfig} from '@stomp/ng2-stompjs';
+import {DBConfig} from 'ngx-indexed-db';
 
 export const rxStompConfig: InjectableRxStompConfig = {
   // Which server?
@@ -19,7 +19,7 @@ export const rxStompConfig: InjectableRxStompConfig = {
   // Wait in milliseconds before attempting auto reconnect
   // Set to 0 to disable
   // Typical value 500 (500 milli seconds)
-  reconnectDelay: 1000,
+  reconnectDelay: 5000,
 
   // Will log diagnostics on console
   // It can be quite verbose, not recommended in production
@@ -35,42 +35,42 @@ export const indexedDBConfig: DBConfig = {
   objectStoresMeta: [
     {
       store: 'users',
-      storeConfig: { keyPath: 'id', autoIncrement: false },
+      storeConfig: {keyPath: 'id', autoIncrement: false},
       storeSchema: [
         {
           name: 'username',
           keypath: 'username',
-          options: { unique: true },
+          options: {unique: true},
         },
         {
           name: 'email',
           keypath: 'email',
-          options: { unique: true },
+          options: {unique: true},
         },
         {
           name: 'firstName',
           keypath: 'firstName',
-          options: { unique: true },
+          options: {unique: true},
         },
         {
           name: 'lastName',
           keypath: 'lastName',
-          options: { unique: false },
+          options: {unique: false},
         },
         {
           name: 'problems',
           keypath: 'problems',
-          options: { unique: false },
+          options: {unique: false},
         },
         {
           name: 'algorithms',
           keypath: 'algorithms',
-          options: { unique: false },
+          options: {unique: false},
         },
         {
           name: 'queue',
           keypath: 'queue',
-          options: { unique: false },
+          options: {unique: false},
         },
       ],
     },

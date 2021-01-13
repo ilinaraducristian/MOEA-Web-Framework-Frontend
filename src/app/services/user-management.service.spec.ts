@@ -57,9 +57,9 @@ describe('UserManagementService', () => {
       queueItem.name = 'New queue item';
       queueItem.numberOfEvaluations = 10000;
       queueItem.numberOfSeeds = 10;
-      queueItem.algorithm = 'NSGAIII';
-      queueItem.problem = 'Belegundu';
-      queueItem.referenceSet = 'Belegundu';
+      queueItem.algorithmMD5 = 'NSGAIII';
+      queueItem.problemMD5 = 'Belegundu';
+      queueItem.referenceSetMD5 = 'Belegundu';
 
       service
         .addQueueItem(queueItem)

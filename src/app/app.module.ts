@@ -1,6 +1,6 @@
 import { HttpClientModule } from '@angular/common/http';
 import { APP_INITIALIZER, NgModule } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
@@ -45,18 +45,19 @@ function initializeKeycloak(keycloak: KeycloakService): () => Promise<boolean> {
     QueueComponent,
     ResultsComponent,
   ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    NgbModule,
-    NgxIndexedDBModule.forRoot(indexedDBConfig),
-    HttpClientModule,
-    KeycloakAngularModule,
-    FormsModule,
-    ServiceWorkerModule.register('ngsw-worker.js', {
-      enabled: environment.production,
-    }),
-  ],
+    imports: [
+        BrowserModule,
+        AppRoutingModule,
+        NgbModule,
+        NgxIndexedDBModule.forRoot(indexedDBConfig),
+        HttpClientModule,
+        KeycloakAngularModule,
+        FormsModule,
+        ServiceWorkerModule.register('ngsw-worker.js', {
+            enabled: environment.production,
+        }),
+        ReactiveFormsModule,
+    ],
   providers: [
     {
       provide: APP_INITIALIZER,

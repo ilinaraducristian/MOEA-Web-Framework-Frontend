@@ -1,0 +1,17 @@
+h1 {
+  text-align: center;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+}
+
+form {
+  max-width: 50rem;
+}
+
+.submit-container {
+  display: flex;
+  justify-content: flex-end;
+}

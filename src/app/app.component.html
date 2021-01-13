@@ -1,27 +1,19 @@
-<!--<ul ngbNav [activeId]="route.fragment | async" class="nav-tabs">-->
-<!--  <li [ngbNavItem]="link.path" *ngFor="let link of routes">-->
-<!--    <a ngbNavLink routerLink="/{{link.path}}" >{{ link.title }}</a>-->
-<!--  </li>-->
-<!--</ul>-->
-<div class="main-container">
-  <!-- <div class="sidebar">
-    <ul class="sidebar-list">
-      <li *ngFor="let route of routes | keyvalue" class="sidebar-list-item">
-        <a
-          [routerLinkActiveOptions]="{ exact: true }"
-          class="sidebar-list-item-link"
-          routerLink="/{{ route.key }}"
-          routerLinkActive="active"
-        >
-          {{ link.title }}
-        </a>
-      </li>
-    </ul>
-  </div> -->
-
-  <div *ngIf="this.isOffline">You are offline!</div>
-
-  <div class="main">
-    <router-outlet></router-outlet>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item" *ngFor="let route of routes">
+          <a class="nav-link" aria-current="page" routerLink="/{{route.path}}" routerLinkActive="active"
+             [routerLinkActiveOptions]="{exact: true}"
+             href="#">{{route.title}}</a>
+        </li>
+      </ul>
+    </div>
   </div>
+</nav>
+
+<div *ngIf="this.isOffline" class="alert alert-danger offline-alert" role="alert">
+  You are offline!
 </div>
+
+<router-outlet></router-outlet>

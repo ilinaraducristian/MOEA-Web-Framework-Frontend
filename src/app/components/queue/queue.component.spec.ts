@@ -21,12 +21,12 @@ describe('QueueComponent', () => {
     const queueItem = new QueueItem();
 
     queueItem.rabbitId = 'ff1d6f34-5c5f-4c00-a630-005bc1266ca7';
-    queueItem.algorithm = 'Algorithm 1';
-    queueItem.problem = 'Problem 1';
+    queueItem.algorithmMD5 = 'Algorithm 1';
+    queueItem.problemMD5 = 'Problem 1';
     queueItem.name = 'A new testing';
     queueItem.numberOfEvaluations = 10000;
     queueItem.numberOfSeeds = 10;
-    queueItem.referenceSet = queueItem.problem;
+    queueItem.referenceSetMD5 = queueItem.problemMD5;
     queueItem.status = 'waiting';
     queueItem.progress = -1;
     user.algorithms = ['Algorithm1', 'Algorithm2', 'Algorithm3'];

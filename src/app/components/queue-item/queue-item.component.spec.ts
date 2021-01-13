@@ -53,7 +53,7 @@ describe('QueueItemComponent', () => {
   });
 
   it('should add a new queue item and redirect', async () => {
-    await component.addQueueItem();
+    await component.addQueueItem(form);
 
     const h1 = fixture.nativeElement.querySelector('h1');
     expect(h1).toBeNull();
@@ -67,7 +67,7 @@ describe('QueueItemComponent', () => {
         })
     );
 
-    await component.addQueueItem();
+    await component.addQueueItem(form);
     fixture.detectChanges();
     const h1 = fixture.nativeElement.querySelector('h1');
     expect(h1.textContent).toBe(component.error as string);

@@ -40,6 +40,7 @@ export class QueueComponent extends RxBaseComponent implements OnInit {
       )
       .subscribe((user) => {
         this.user = user;
+        console.log(user.queue);
       });
     this.onlineStatusService.isOnline
       .pipe(takeUntil(this.ngUnsubscribe))
@@ -47,7 +48,7 @@ export class QueueComponent extends RxBaseComponent implements OnInit {
   }
 
   async startProcessing(rabbitId: string): Promise<void> {
-    if (this.isActionPerforming === true) {
+    if (this.isActionPerforming) {
       return;
     }
     this.isActionPerforming = true;
@@ -64,7 +65,7 @@ export class QueueComponent extends RxBaseComponent implements OnInit {
   }
 
   async cancelProcessing(queueItem: QueueItem): Promise<void> {
-    if (this.isActionPerforming === true) {
+    if (this.isActionPerforming) {
       return;
     }
     this.isActionPerforming = true;
@@ -77,7 +78,7 @@ export class QueueComponent extends RxBaseComponent implements OnInit {
   }
 
   async removeQueueItem(queueItem: QueueItem): Promise<void> {
-    if (this.isActionPerforming === true) {
+    if (this.isActionPerforming) {
       return;
     }
     this.isActionPerforming = true;

@@ -28,6 +28,7 @@ export class UserManagementService {
     private readonly rxStompService: RxStompService,
     private readonly onlineStatusService: OnlineStatusService
   ) {
+    console.log('constructor');
     onlineStatusService.isOnline.subscribe(
       (isOnline) => (this.isOnline = isOnline)
     );
@@ -115,7 +116,7 @@ export class UserManagementService {
 
     const user = this.user.getValue();
     queueItem.status = 'waiting';
-    queueItem.referenceSet = queueItem.problem;
+    queueItem.referenceSetMD5 = queueItem.problemMD5;
     queueItem.userId = user.id;
     if (!this.isOnline) {
       throw new Error('Browser is offline');
@@ -128,6 +129,7 @@ export class UserManagementService {
         {observe: 'response'}
       )
       .toPromise();
+
     if (response.status === 200) {
       queueItem.rabbitId = response.body?.rabbitId ?? '';
       user.queue.set(queueItem.rabbitId, queueItem);
